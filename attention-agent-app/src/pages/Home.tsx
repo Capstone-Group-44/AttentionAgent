@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 export interface IHomePageProps {}
 
-const HomePage: React.FunctionComponent<IHomePageProps> = (props) => {
+const HomePage: React.FunctionComponent<IHomePageProps> = () => {
     const auth = getAuth();
     const navigate = useNavigate();
 
