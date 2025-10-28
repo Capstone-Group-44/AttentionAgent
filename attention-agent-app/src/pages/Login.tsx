@@ -31,7 +31,7 @@ const LoginPage: React.FC = () => {
         console.log('User document already exists');
       }
 
-      navigate('/');
+      navigate('/focus', { replace: true }); 
     } catch (error) {
       console.error(error);
       setAuthing(false);
