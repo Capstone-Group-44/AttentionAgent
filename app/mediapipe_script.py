@@ -25,7 +25,8 @@ csv_writer.writerow([
     "left_iris_x", "left_iris_y",
     "right_iris_x", "right_iris_y",
     "face_x", "face_y",
-    "face_z"
+    "face_z",
+    "focused?"
 ])
 
 # Start camera
