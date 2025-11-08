@@ -7,7 +7,10 @@ import pyautogui  # for getting screen size
 
 # Initialize MediaPipe FaceMesh
 mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1)
+face_mesh = mp_face_mesh.FaceMesh(
+    refine_landmarks=True, max_num_faces=1,
+    min_detection_confidence=0.5, min_tracking_confidence=0.5
+)
 
 # Get screen size dynamically
 screen_width, screen_height = pyautogui.size()
@@ -22,8 +25,8 @@ csv_writer = csv.writer(csv_file)
 csv_writer.writerow([
     "timestamp",
     "screen_width", "screen_height",
-    "left_iris_x", "left_iris_y",
-    "right_iris_x", "right_iris_y",
+    "left_gaze_x", "left_gaze_y",
+    "right_gaze_x", "right_gaze_y",
     "face_x", "face_y",
     "face_z",
     "focused?"
@@ -31,7 +34,15 @@ csv_writer.writerow([
 
 # Start camera
 cap = cv2.VideoCapture(0)
-prev_time = time.time()
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+
+prev_record_time = time.time()
+csv_start_time = None  # mark when to start writing
+
+# Focus tracking
+focus_mode = False
+buffered_rows = []
 
 while True:
     success, frame = cap.read()
@@ -45,10 +56,27 @@ while True:
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = face_mesh.process(rgb)
 
+    current_time = time.time()
+
+    # Set CSV start time when window first opens
+    if csv_start_time is None:
+        csv_start_time = current_time
+
+    # Default values in case face is not detected
+    left_gaze_x = left_gaze_y = None
+    right_gaze_x = right_gaze_y = None
+    face_screen_x = face_screen_y = face_z = None
+
     if results.multi_face_landmarks:
         face_landmarks = results.multi_face_landmarks[0]
 
-        # Get iris landmarks
+        # Face center (nose tip)
+        nose_tip = face_landmarks.landmark[1]
+        face_x, face_y, face_z = nose_tip.x, nose_tip.y, nose_tip.z
+        face_screen_x = face_x * screen_width
+        face_screen_y = face_y * screen_height
+
+        # Iris landmarks
         LEFT_IRIS = [469, 470, 471, 472]
         RIGHT_IRIS = [474, 475, 476, 477]
 
@@ -60,38 +88,69 @@ while True:
         (l_cx, l_cy), _ = cv2.minEnclosingCircle(left_iris)
         (r_cx, r_cy), _ = cv2.minEnclosingCircle(right_iris)
 
-        #  Get face center landmark (e.g., tip of nose) 
-        nose_tip = face_landmarks.landmark[1]
-        face_x, face_y, face_z = nose_tip.x, nose_tip.y, nose_tip.z
-
-        # Draw iris positions on screen 
+        # Draw iris positions
         cv2.circle(frame, (int(l_cx), int(l_cy)), 2, (0, 255, 0), -1)
         cv2.circle(frame, (int(r_cx), int(r_cy)), 2, (0, 255, 0), -1)
         cv2.circle(frame, (int(face_x * w), int(face_y * h)), 3, (255, 0, 0), -1)
 
-        # Normalize iris & face positions to screen size 
-        left_iris_screen_x = (l_cx / w) * screen_width
-        left_iris_screen_y = (l_cy / h) * screen_height
-        right_iris_screen_x = (r_cx / w) * screen_width
-        right_iris_screen_y = (r_cy / h) * screen_height
+        # Gaze estimation: iris position relative to face
+        # These are offsets from face center in camera pixels
+        face_center_x = face_x * w
+        face_center_y = face_y * h
 
-        face_screen_x = face_x * screen_width
-        face_screen_y = face_y * screen_height
+        left_offset_x = l_cx - face_center_x
+        left_offset_y = l_cy - face_center_y
+        right_offset_x = r_cx - face_center_x
+        right_offset_y = r_cy - face_center_y
 
-        # Write to CSV 
-        timestamp = round(time.time() - prev_time, 3)
-        csv_writer.writerow([
-            timestamp,
-            screen_width, screen_height,
-            round(left_iris_screen_x, 2), round(left_iris_screen_y, 2),
-            round(right_iris_screen_x, 2), round(right_iris_screen_y, 2),
-            round(face_screen_x, 2), round(face_screen_y, 2),
-            round(face_z, 4)
-        ])
+        # Map offsets to screen coordinates
+        # Assume camera frame roughly covers full screen; scaling by screen size / frame size
+        left_gaze_x = face_screen_x + left_offset_x * (screen_width / w)
+        left_gaze_y = face_screen_y + left_offset_y * (screen_height / h)
+        right_gaze_x = face_screen_x + right_offset_x * (screen_width / w)
+        right_gaze_y = face_screen_y + right_offset_y * (screen_height / h)
+
+    # Only record after 5 seconds of window being open
+    if current_time - csv_start_time >= 5:
+        if current_time - prev_record_time >= 0.05:  # 50 ms interval
+            timestamp = round(current_time, 3)
+            row = [
+                timestamp,
+                screen_width, screen_height,
+                left_gaze_x, left_gaze_y,
+                right_gaze_x, right_gaze_y,
+                face_screen_x, face_screen_y,
+                face_z,
+                False  # default focused
+            ]
+
+            # Buffer rows if focus mode active
+            if focus_mode:
+                buffered_rows.append(row)
+            else:
+                csv_writer.writerow(row)
+
+            prev_record_time = current_time
 
     cv2.imshow("Iris + Face Tracking", frame)
-    if cv2.waitKey(1) & 0xFF == 27:  # ESC to stop
+    key = cv2.waitKey(1) & 0xFF
+
+    # ESC to exit
+    if key == 27:
         break
+    # F pressed -> start focus
+    elif key == ord('f'):
+        focus_mode = True
+        buffered_rows = []
+        print("🔵 Focus started")
+    # N pressed -> end focus, mark buffered rows as focused
+    elif key == ord('n') and focus_mode:
+        focus_mode = False
+        for row in buffered_rows:
+            row[-1] = True
+            csv_writer.writerow(row)
+        buffered_rows = []
+        print("🟢 Focus ended, rows marked as True")
 
 cap.release()
 cv2.destroyAllWindows()
