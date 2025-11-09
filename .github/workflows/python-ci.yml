@@ -49,7 +49,11 @@ jobs:
       - name: Run tests with pytest
         run: |
           pip install pytest
-          pytest --maxfail=1 --disable-warnings -q
+          if ls tests/*.py 1> /dev/null 2>&1; then
+            pytest --maxfail=1 --disable-warnings -q
+          else
+            echo "No tests found, skipping pytest."
+          fi
 
       # 7. Optional: generate coverage report
       - name: Coverage
