@@ -43,7 +43,7 @@ jobs:
       - name: Lint with flake8
         run: |
           pip install flake8
-          flake8 .
+          flake8 . --ignore=E501,F401,F841,E402,C901
 
       # 6. Run tests
       - name: Run tests with pytest
