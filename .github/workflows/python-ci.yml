@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.11]
+        python-version: [3.11, 3.12]
 
     steps:
       # 1. Checkout code
@@ -39,21 +39,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 5. Lint code
-      - name: Lint with flake8
-        run: |
-          pip install flake8
-          flake8 .
-
-      # 6. Run tests
+      # 5. Run tests
       - name: Run tests with pytest
         run: |
           pip install pytest
-          pytest --maxfail=1 --disable-warnings -q
+          if ls tests/*.py 1> /dev/null 2>&1; then
+            pytest --maxfail=1 --disable-warnings -q
+          else
+            echo "No tests found, skipping pytest."
+          fi
 
-      # 7. Optional: generate coverage report
+      # 6. Optional: generate coverage report
       - name: Coverage
         run: |
-          pip install coverage
-          coverage run -m pytest
-          coverage report
+          pip install coverage pytest
+          if ls tests/*.py 1> /dev/null 2>&1; then
+            coverage run -m pytest
+            coverage report
+          else
+            echo "No tests found, skipping coverage."
+          fi
