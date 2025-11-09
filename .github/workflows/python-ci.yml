@@ -58,6 +58,10 @@ jobs:
       # 7. Optional: generate coverage report
       - name: Coverage
         run: |
-          pip install coverage
-          coverage run -m pytest
-          coverage report
+          pip install coverage pytest
+          if ls tests/*.py 1> /dev/null 2>&1; then
+            coverage run -m pytest
+            coverage report
+          else
+            echo "No tests found, skipping coverage."
+          fi
