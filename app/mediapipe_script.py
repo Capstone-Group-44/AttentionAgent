@@ -91,7 +91,8 @@ while True:
         # Draw iris positions
         cv2.circle(frame, (int(l_cx), int(l_cy)), 2, (0, 255, 0), -1)
         cv2.circle(frame, (int(r_cx), int(r_cy)), 2, (0, 255, 0), -1)
-        cv2.circle(frame, (int(face_x * w), int(face_y * h)), 3, (255, 0, 0), -1)
+        cv2.circle(frame, (int(face_x * w), int(face_y * h)),
+                   3, (255, 0, 0), -1)
 
         # Gaze estimation: iris position relative to face
         # These are offsets from face center in camera pixels
