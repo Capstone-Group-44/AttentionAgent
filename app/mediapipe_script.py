@@ -122,7 +122,7 @@ while True:
                 right_gaze_x, right_gaze_y,
                 face_screen_x, face_screen_y,
                 face_z,
-                False  # default focused
+                0  # default focused
             ]
 
             # Buffer rows if focus mode active
@@ -143,17 +143,17 @@ while True:
     elif key == ord('f'):
         focus_mode = True
         buffered_rows = []
-        print("🔵 Focus started")
+        print("Focus started")
     # N pressed -> end focus, mark buffered rows as focused
     elif key == ord('n') and focus_mode:
         focus_mode = False
         for row in buffered_rows:
-            row[-1] = True
+            row[-1] = 1
             csv_writer.writerow(row)
         buffered_rows = []
-        print("🟢 Focus ended, rows marked as True")
+        print("Focus ended, rows marked as 1")
 
 cap.release()
 cv2.destroyAllWindows()
 csv_file.close()
-print(f"✅ Data saved to {csv_filename}")
+print(f"Data saved to {csv_filename}")
