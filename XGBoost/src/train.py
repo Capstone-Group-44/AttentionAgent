@@ -1,69 +1,56 @@
-# src/train.py (or inside main.py if keeping it simple)
+# src/train.py
 import os
-import pandas as pd
+import joblib
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.pipeline import Pipeline
-from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-DATA_PATH = os.path.join("data", "raw", "eye_data.csv")
+from .config import (
+    TEST_SIZE,
+    RANDOM_STATE,
+    MODEL_DIR,
+    MODEL_PATH,
+)
+from .data import load_and_prepare_data
+from .model import build_pipeline
+from .utils import ensure_dir, print_section
 
-def load_data(path):
-    df = pd.read_csv(path)
-    X = df.drop(columns=["is_looking"])
-    y = df["is_looking"]
-    return X, y
 
-def build_preprocessing_and_model(X):
-    numeric_features = X.select_dtypes(include=["int64", "float64"]).columns
-    categorical_features = X.select_dtypes(include=["object", "category", "bool"]).columns
+def train_model():
+    # 1. Load and prepare data
+    X, y = load_and_prepare_data()
 
-    numeric_transformer = StandardScaler()
-    categorical_transformer = OneHotEncoder(handle_unknown="ignore")
-
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("num", numeric_transformer, numeric_features),
-            ("cat", categorical_transformer, categorical_features)
-        ]
-    )
-
-    model = XGBClassifier(
-        n_estimators=200,
-        max_depth=4,
-        learning_rate=0.05,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        objective="binary:logistic",
-        eval_metric="logloss",
-        tree_method="hist",
-        random_state=42
-    )
-
-    clf = Pipeline(
-        steps=[
-            ("preprocessor", preprocessor),
-            ("model", model)
-        ]
-    )
-
-    return clf
-
-def main():
-    X, y = load_data(DATA_PATH)
+    # 2. Train/test split
+    print_section("Train/Test Split")
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X,
+        y,
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE,
+        stratify=y,
     )
+    print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
 
-    clf = build_preprocessing_and_model(X)
-    print("Training pipeline with XGBoost...")
-    clf.fit(X_train, y_train)
+    # 3. Build pipeline
+    pipeline = build_pipeline(X.columns)
 
-    y_pred = clf.predict(X_test)
-    print("Accuracy:", accuracy_score(y_test, y_pred))
+    # 4. Train
+    print_section("Training XGBoost model")
+    pipeline.fit(X_train, y_train)
+
+    # 5. Evaluate
+    print_section("Evaluating on test set")
+    y_pred = pipeline.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    print(f"Accuracy: {acc:.4f}\n")
+
+    print("Classification Report:")
     print(classification_report(y_test, y_pred))
 
-if __name__ == "__main__":
-    main()
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, y_pred))
+
+    # 6. Save model
+    ensure_dir(MODEL_DIR)
+    joblib.dump(pipeline, MODEL_PATH)
+    print_section("Model Saved")
+    print(f"Saved trained pipeline to: {MODEL_PATH}")
