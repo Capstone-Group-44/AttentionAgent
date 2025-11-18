@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox
+from PySide6.QtWidgets import QWidget, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox, QTimer
 from PySide6.QtCore import Slot
 
 
@@ -31,6 +31,10 @@ class AuthView(QWidget):
 
         self.setLayout(layout2)
 
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.check_login)
+        self.timer.start(500)  # check every 500ms
+
     @Slot()
     def login(self):
         success = self.viewmodel.login()
@@ -39,6 +43,12 @@ class AuthView(QWidget):
             self.status_label.setText(f"Logged in as {name}")
         else:
             QMessageBox.critical(self, "Login Failed", "Unable to login")
+
+    def check_login(self):
+        name = self.viewmodel.get_current_user_name()
+        if name:
+            self.status_label.setText(f"Logged in as {name}")
+            self.timer.stop()  # stop polling after login
 
     @Slot()
     def register(self):
