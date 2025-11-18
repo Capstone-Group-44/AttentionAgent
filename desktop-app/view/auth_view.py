@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QLabel, QVBoxLayout, QMessageBox
+from PySide6.QtWidgets import QWidget, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox
 from PySide6.QtCore import Slot
 
 
@@ -8,25 +8,28 @@ class AuthView(QWidget):
         self.viewmodel = viewmodel
 
         self.setWindowTitle("FocusCam")
-        self.setMinimumSize(300, 200)
+        self.setMinimumSize(500, 500)
 
-        # Layout
-        layout = QVBoxLayout()
+        # Layouts
+        layout1 = QHBoxLayout()
+        layout2 = QVBoxLayout()
 
         # Buttons
         self.login_button = QPushButton("Login")
         self.login_button.clicked.connect(self.login)
-        layout.addWidget(self.login_button)
+        layout1.addWidget(self.login_button)
 
         self.register_button = QPushButton("Register")
         self.register_button.clicked.connect(self.register)
-        layout.addWidget(self.register_button)
+        layout1.addWidget(self.register_button)
+
+        layout2.addLayout(layout1)
 
         # Status label
         self.status_label = QLabel("Not logged in")
-        layout.addWidget(self.status_label)
+        layout2.addWidget(self.status_label)
 
-        self.setLayout(layout)
+        self.setLayout(layout2)
 
     @Slot()
     def login(self):
