@@ -1,31 +1,42 @@
-class User:
-    def __init__(self, userId, username, display_name, email, created_at):
-        self.userId = userId
-        self.username = username
-        self.email = email
-        self.display_name = display_name
-        self.created_at = created_at
+from PySide6.QtWidgets import QWidget, QPushButton, QLabel, QVBoxLayout, QMessageBox
+from PySide6.QtCore import Slot
 
-    def get_username(self):
-        return self.username
 
-    def set_username(self, username):
-        self.username = username
+class AuthView(QWidget):
+    def __init__(self, viewmodel):
+        super().__init__()
+        self.viewmodel = viewmodel
 
-    def get_email(self):
-        return self.email
+        self.setWindowTitle("FocusCam")
+        self.setMinimumSize(300, 200)
 
-    def set_email(self, email):
-        self.email = email
+        # Layout
+        layout = QVBoxLayout()
 
-    def get_display_name(self):
-        return self.display_name
+        # Buttons
+        self.login_button = QPushButton("Login")
+        self.login_button.clicked.connect(self.login)
+        layout.addWidget(self.login_button)
 
-    def set_display_name(self, display_name):
-        self.display_name = display_name
+        self.register_button = QPushButton("Register")
+        self.register_button.clicked.connect(self.register)
+        layout.addWidget(self.register_button)
 
-    def get_created_at(self):
-        return self.created_at
+        # Status label
+        self.status_label = QLabel("Not logged in")
+        layout.addWidget(self.status_label)
 
-    def set_created_at(self, created_at):
-        self.created_at = created_at
+        self.setLayout(layout)
+
+    @Slot()
+    def login(self):
+        success = self.viewmodel.login()
+        if success:
+            name = self.viewmodel.get_current_display_name()
+            self.status_label.setText(f"Logged in as {name}")
+        else:
+            QMessageBox.critical(self, "Login Failed", "Unable to login")
+
+    @Slot()
+    def register(self):
+        self.viewmodel.register()
