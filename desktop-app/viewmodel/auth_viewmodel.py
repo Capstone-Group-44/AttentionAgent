@@ -42,12 +42,12 @@ class AuthViewModel(QObject):
     def login(self):
         self.start_local_server()
         # URL to the webapp login page
-        webbrowser.open("http://localhost:3000/")
+        webbrowser.open("http://localhost:3000/login")
         time.sleep(20)  # Wait for user to complete login in browser
         return True
 
     def register(self):
-        webbrowser.open("http://localhost:3000/")
+        webbrowser.open("http://localhost:3000/login")
 
     def get_current_username(self):
         if self.current_user:
