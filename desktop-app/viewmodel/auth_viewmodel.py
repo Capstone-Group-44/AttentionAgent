@@ -49,7 +49,7 @@ class AuthViewModel(QObject):
     def register(self):
         webbrowser.open("http://localhost:3000/")
 
-    def get_current_display_name(self):
+    def get_current_username(self):
         if self.current_user:
-            return self.current_user.display_name
+            return self.current_user.username
         return None
