@@ -16,14 +16,13 @@ const pages: Array<{
     name: string
     url: string
 }> = [
-    { name: 'Home', url: '/home'},
+    { name: 'Home', url: '/'},
     { name: 'My Sessions', url: '/sessions'},
-    { name: 'Community', url: '/community'},
 ]
 
 export default function NavigationBar(): React.JSX.Element {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center gap-8">
       <span className="font-medium">{NAV_BAR.TITLE}</span>
       <NavMenu/>
     </div>
