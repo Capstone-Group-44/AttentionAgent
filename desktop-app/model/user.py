@@ -1,10 +1,16 @@
 class User:
-    def __init__(self, userId, username, display_name, email, created_at):
-        self.userId = userId
+    def __init__(self, uid, username, display_name, email, created_at):
+        self.uid = uid
         self.username = username
         self.email = email
         self.display_name = display_name
         self.created_at = created_at
+
+    def get_uid(self):
+        return self.uid
+
+    def set_uid(self, uid):
+        self.uid = uid
 
     def get_username(self):
         return self.username

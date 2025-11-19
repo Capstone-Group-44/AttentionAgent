@@ -3,36 +3,24 @@ import time
 import threading
 from model.user import User
 from flask import Flask, request
-from firebase_admin import auth, credentials, initialize_app
 
 
 class AuthViewModel:
     def __init__(self):
         self.current_user = None
-
-        cred = credentials.Certificate("path/to/serviceAccountKey.json")
-        initialize_app(cred)
-
         self._flask_app = Flask(__name__)
         self._server_thread = None
 
         @self._flask_app.route("/callback")  # Endpoint for OAuth callback
         def callback():
-            id_token = request.args.get("idToken")  # Secure JWT from webapp
-            try:
-                decoded_token = auth.verify_id_token(id_token)
-                userId = decoded_token["userId"]
-                name = decoded_token.get("name", "Unknown")
-                email = decoded_token.get("email", "")
+            # Extract user info from query params
+            name = request.args.get("name")
+            email = request.args.get("email")
+            uid = request.args.get("uid")
 
-                self.current_user = User(userId=userId, name=name, email=email)
+            self.current_user = User(uid=uid, name=name, email=email)
 
-                # Emit signal to update UI
-                self.login_success.emit(name)
-
-                return "Login successful! You can close this window."
-            except Exception as e:
-                return f"Login failed: {e}", 400
+            return "Login successful! You can close this window."
 
     def start_local_server(self):
         self._server_thread = threading.Thread(

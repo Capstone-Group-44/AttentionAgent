@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox, QTimer
+from PySide6.QtWidgets import QWidget, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox
 from PySide6.QtCore import Slot
 
 
@@ -31,9 +31,9 @@ class AuthView(QWidget):
 
         self.setLayout(layout2)
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.check_login)
-        self.timer.start(500)  # check every 500ms
+        # self.timer = QTimer()
+        # self.timer.timeout.connect(self.check_login)
+        # self.timer.start(100)
 
     @Slot()
     def login(self):
