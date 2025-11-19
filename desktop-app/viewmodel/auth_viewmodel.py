@@ -1,12 +1,17 @@
 import webbrowser
 import time
 import threading
+from PySide6.QtCore import QObject, Signal
 from model.user import User
 from flask import Flask, request
 
 
-class AuthViewModel:
+class AuthViewModel(QObject):
+    login_success = Signal(str)
+    login_failed = Signal(str)
+
     def __init__(self):
+        super().__init__()
         self.current_user = None
         self._flask_app = Flask(__name__)
         self._server_thread = None
@@ -18,9 +23,13 @@ class AuthViewModel:
             email = request.args.get("email")
             uid = request.args.get("uid")
 
-            self.current_user = User(uid=uid, name=name, email=email)
-
-            return "Login successful! You can close this window."
+            if name and email and uid:
+                self.current_user = {"name": name, "email": email, "uid": uid}
+                self.login_success.emit(name)
+                return "Login successful! You can close this window."
+            else:
+                self.login_failed.emit("Missing user info")
+                return "Login failed!", 400
 
     def start_local_server(self):
         self._server_thread = threading.Thread(
@@ -32,12 +41,13 @@ class AuthViewModel:
 
     def login(self):
         self.start_local_server()
-        webbrowser.open("#")  # URL to the webapp login page
-        time.sleep(2)  # Wait for user to complete login in browser
+        # URL to the webapp login page
+        webbrowser.open("http://localhost:3000/")
+        time.sleep(20)  # Wait for user to complete login in browser
         return True
 
     def register(self):
-        webbrowser.open("#")
+        webbrowser.open("http://localhost:3000/")
 
     def get_current_display_name(self):
         if self.current_user:
