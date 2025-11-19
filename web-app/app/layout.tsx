@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavigationBar from "./_components/navigation-bar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,10 +26,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <NavigationBar/>
+      <NavigationBar />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ScrollArea>
+          <div className="m-auto max-w-7xl space-y-3">
+            <header className="p-5">
+              <NavigationBar />
+            </header>
+          </div>
+        </ScrollArea>
         {children}
       </body>
     </html>
