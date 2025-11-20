@@ -2,8 +2,9 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import csv
+from datetime import datetime
 import time
-import pyautogui  # for getting screen size
+import pyautogui
 
 # Initialize MediaPipe FaceMesh
 mp_face_mesh = mp.solutions.face_mesh
@@ -12,37 +13,126 @@ face_mesh = mp_face_mesh.FaceMesh(
     min_detection_confidence=0.5, min_tracking_confidence=0.5
 )
 
-# Get screen size dynamically
+# Screen size
 screen_width, screen_height = pyautogui.size()
-print(f"Detected screen size: {screen_width} x {screen_height}")
 
-# Open CSV file for writing
-csv_filename = "iris_face_tracking.csv"
-csv_file = open(csv_filename, mode="w", newline="")
+# CSV Setup
+csv_filename = "iris_focus_tracking.csv"
+csv_file = open(csv_filename, "w", newline="")
 csv_writer = csv.writer(csv_file)
-
-# Write header
 csv_writer.writerow([
     "timestamp",
-    "screen_width", "screen_height",
     "left_gaze_x", "left_gaze_y",
     "right_gaze_x", "right_gaze_y",
-    "face_x", "face_y",
-    "face_z",
     "focused?"
 ])
 
-# Start camera
+# Camera
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 
-prev_record_time = time.time()
-csv_start_time = None  # mark when to start writing
 
-# Focus tracking
-focus_mode = False
-buffered_rows = []
+# -------------------- GAZE EXTRACTION --------------------
+def get_gaze(frame, results, w, h):
+    if not results.multi_face_landmarks:
+        return None, None, None, None
+
+    lm = results.multi_face_landmarks[0]
+
+    LEFT_IRIS = [469, 470, 471, 472]
+    RIGHT_IRIS = [474, 475, 476, 477]
+
+    left_iris = np.array([(int(lm.landmark[i].x * w),
+                           int(lm.landmark[i].y * h)) for i in LEFT_IRIS])
+    right_iris = np.array([(int(lm.landmark[i].x * w),
+                            int(lm.landmark[i].y * h)) for i in RIGHT_IRIS])
+
+    (l_cx, l_cy), _ = cv2.minEnclosingCircle(left_iris)
+    (r_cx, r_cy), _ = cv2.minEnclosingCircle(right_iris)
+
+    # face center reference (nose tip)
+    nose = lm.landmark[1]
+    face_x = nose.x * w
+    face_y = nose.y * h
+
+    left_offset_x = l_cx - face_x
+    left_offset_y = l_cy - face_y
+    right_offset_x = r_cx - face_x
+    right_offset_y = r_cy - face_y
+
+    # Map to screen coordinates
+    left_gaze_x = face_x * (screen_width / w) + \
+        left_offset_x * (screen_width / w)
+    left_gaze_y = face_y * (screen_height / h) + \
+        left_offset_y * (screen_height / h)
+    right_gaze_x = face_x * (screen_width / w) + \
+        right_offset_x * (screen_width / w)
+    right_gaze_y = face_y * (screen_height / h) + \
+        right_offset_y * (screen_height / h)
+
+    return left_gaze_x, left_gaze_y, right_gaze_x, right_gaze_y
+
+
+# -------------------- CALIBRATION --------------------
+def calibrate_corner(prompt):
+    print(f"\nLOOK AT THE {prompt.upper()} CORNER AND PRESS SPACE")
+    while True:
+        success, frame = cap.read()
+        frame = cv2.flip(frame, 1)
+        h, w, _ = frame.shape
+
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = face_mesh.process(rgb)
+
+        cv2.putText(frame, f"Look at {prompt} corner, press SPACE",
+                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (0, 255, 0), 2)
+
+        cv2.imshow("Calibration", frame)
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == 32:  # SPACE
+            gaze = get_gaze(frame, results, w, h)
+            if gaze[0] is not None:
+                return gaze
+
+        if key == 27:  # ESC
+            exit()
+
+
+print("\nCALIBRATION STARTED")
+tl = calibrate_corner("TOP-LEFT")
+tr = calibrate_corner("TOP-RIGHT")
+bl = calibrate_corner("BOTTOM-LEFT")
+br = calibrate_corner("BOTTOM-RIGHT")
+
+cv2.destroyWindow("Calibration")
+
+all_x = [tl[0], tr[0], bl[0], br[0], tl[2], tr[2], bl[2], br[2]]
+all_y = [tl[1], tr[1], bl[1], br[1], tl[3], tr[3], bl[3], br[3]]
+
+min_x, max_x = min(all_x), max(all_x)
+min_y, max_y = min(all_y), max(all_y)
+
+# Convert boundary coords back to CAMERA SPACE for drawing
+# (rectangle drawn on webcam, not desktop)
+
+
+def screen_to_cam_x(sx):
+    return int((sx / screen_width) * w)
+
+
+def screen_to_cam_y(sy):
+    return int((sy / screen_height) * h)
+
+
+print("\nCalibration complete! Tracking started...\n")
+
+
+# -------------------- MAIN LOOP --------------------
+prev_time = time.time()
+LOG_INTERVAL = 0.5   # 500ms
 
 while True:
     success, frame = cap.read()
@@ -52,108 +142,53 @@ while True:
     frame = cv2.flip(frame, 1)
     h, w, _ = frame.shape
 
-    # Convert to RGB for MediaPipe
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = face_mesh.process(rgb)
 
-    current_time = time.time()
+    left_x = left_y = right_x = right_y = None
+    gaze = get_gaze(frame, results, w, h)
 
-    # Set CSV start time when window first opens
-    if csv_start_time is None:
-        csv_start_time = current_time
+    if gaze[0] is not None:
+        left_x, left_y, right_x, right_y = gaze
 
-    # Default values in case face is not detected
-    left_gaze_x = left_gaze_y = None
-    right_gaze_x = right_gaze_y = None
-    face_screen_x = face_screen_y = face_z = None
+    # Draw calibrated area rectangle on webcam feed
+    cam_x1 = screen_to_cam_x(min_x)
+    cam_x2 = screen_to_cam_x(max_x)
+    cam_y1 = screen_to_cam_y(min_y)
+    cam_y2 = screen_to_cam_y(max_y)
 
-    if results.multi_face_landmarks:
-        face_landmarks = results.multi_face_landmarks[0]
+    cv2.rectangle(frame, (cam_x1, cam_y1), (cam_x2, cam_y2),
+                  (0, 255, 0), 2)
 
-        # Face center (nose tip)
-        nose_tip = face_landmarks.landmark[1]
-        face_x, face_y, face_z = nose_tip.x, nose_tip.y, nose_tip.z
-        face_screen_x = face_x * screen_width
-        face_screen_y = face_y * screen_height
+    # Logging every 500ms
+    now = time.time()
+    if now - prev_time >= LOG_INTERVAL:
 
-        # Iris landmarks
-        LEFT_IRIS = [469, 470, 471, 472]
-        RIGHT_IRIS = [474, 475, 476, 477]
+        timestamp = datetime.now().isoformat()
 
-        left_iris = np.array([(int(face_landmarks.landmark[i].x * w),
-                               int(face_landmarks.landmark[i].y * h)) for i in LEFT_IRIS])
-        right_iris = np.array([(int(face_landmarks.landmark[i].x * w),
-                                int(face_landmarks.landmark[i].y * h)) for i in RIGHT_IRIS])
+        if left_x is not None:
+            focused = int(min_x <= left_x <=
+                          max_x and min_y <= left_y <= max_y)
+        else:
+            focused = 0
 
-        (l_cx, l_cy), _ = cv2.minEnclosingCircle(left_iris)
-        (r_cx, r_cy), _ = cv2.minEnclosingCircle(right_iris)
+        csv_writer.writerow([
+            timestamp,
+            left_x, left_y,
+            right_x, right_y,
+            focused
+        ])
 
-        # Draw iris positions
-        cv2.circle(frame, (int(l_cx), int(l_cy)), 2, (0, 255, 0), -1)
-        cv2.circle(frame, (int(r_cx), int(r_cy)), 2, (0, 255, 0), -1)
-        cv2.circle(frame, (int(face_x * w), int(face_y * h)),
-                   3, (255, 0, 0), -1)
+        prev_time = now
 
-        # Gaze estimation: iris position relative to face
-        # These are offsets from face center in camera pixels
-        face_center_x = face_x * w
-        face_center_y = face_y * h
-
-        left_offset_x = l_cx - face_center_x
-        left_offset_y = l_cy - face_center_y
-        right_offset_x = r_cx - face_center_x
-        right_offset_y = r_cy - face_center_y
-
-        # Map offsets to screen coordinates
-        # Assume camera frame roughly covers full screen; scaling by screen size / frame size
-        left_gaze_x = face_screen_x + left_offset_x * (screen_width / w)
-        left_gaze_y = face_screen_y + left_offset_y * (screen_height / h)
-        right_gaze_x = face_screen_x + right_offset_x * (screen_width / w)
-        right_gaze_y = face_screen_y + right_offset_y * (screen_height / h)
-
-    # Only record after 5 seconds of window being open
-    if current_time - csv_start_time >= 5:
-        if current_time - prev_record_time >= 0.05:  # 50 ms interval
-            timestamp = round(current_time, 3)
-            row = [
-                timestamp,
-                screen_width, screen_height,
-                left_gaze_x, left_gaze_y,
-                right_gaze_x, right_gaze_y,
-                face_screen_x, face_screen_y,
-                face_z,
-                0  # default focused
-            ]
-
-            # Buffer rows if focus mode active
-            if focus_mode:
-                buffered_rows.append(row)
-            else:
-                csv_writer.writerow(row)
-
-            prev_record_time = current_time
-
-    cv2.imshow("Iris + Face Tracking", frame)
+    cv2.imshow("Iris Tracking", frame)
     key = cv2.waitKey(1) & 0xFF
 
-    # ESC to exit
-    if key == 27:
+    if key == 27:  # ESC
         break
-    # F pressed -> start focus
-    elif key == ord('f'):
-        focus_mode = True
-        buffered_rows = []
-        print("Focus started")
-    # N pressed -> end focus, mark buffered rows as focused
-    elif key == ord('n') and focus_mode:
-        focus_mode = False
-        for row in buffered_rows:
-            row[-1] = 1
-            csv_writer.writerow(row)
-        buffered_rows = []
-        print("Focus ended, rows marked as 1")
 
 cap.release()
 cv2.destroyAllWindows()
 csv_file.close()
-print(f"Data saved to {csv_filename}")
+
+print(f"Saved to {csv_filename}")
