@@ -9,7 +9,7 @@ def load_raw_data(path: str = RAW_DATA_PATH) -> pd.DataFrame:
     print_section(f"Loading data from {path}")
 
     # Your file uses TABs between columns, not commas
-    df = pd.read_csv(path, sep="\t")
+    df = pd.read_csv(path, sep=",")
 
     # Optional sanity check on columns
     missing_cols = [c for c in EXPECTED_COLUMNS if c not in df.columns]

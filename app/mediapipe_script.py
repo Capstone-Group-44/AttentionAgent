@@ -35,8 +35,8 @@ class FocusDetector:
         # The example used 1512x982. Let's stick to that or use the frame size?) 
         # The model likely expects the screen size to be what the user is looking at.
         # For now, I'll use the example values as defaults but allow overrides.
-        self.screen_width = 1512
-        self.screen_height = 982
+        self.screen_width = 1920
+        self.screen_height = 1080
 
     def get_landmark_coords(self, landmarks, idx, width, height):
         return (landmarks[idx].x * width, landmarks[idx].y * height)
@@ -91,6 +91,18 @@ class FocusDetector:
                     face_x, face_y = self.get_landmark_coords(landmarks, 1, img_w, img_h)
                     face_z = landmarks[1].z # Z is relative depth
                     
+                    scale_x = self.screen_width / img_w
+                    scale_y = self.screen_height / img_h
+
+                    left_gaze_x  *= scale_x
+                    right_gaze_x *= scale_x
+                    face_x       *= scale_x
+
+                    left_gaze_y  *= scale_y
+                    right_gaze_y *= scale_y
+                    face_y       *= scale_y
+
+                    
                     # Construct sample
                     sample = {
                         "screen_width": self.screen_width,
@@ -104,6 +116,8 @@ class FocusDetector:
                         "face_z": face_z,
                     }
                     
+                    print("LIVE SAMPLE:", sample)
+
                     try:
                         prediction_results = predict_focus([sample])
                         if prediction_results:
