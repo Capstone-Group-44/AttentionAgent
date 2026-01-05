@@ -4,3 +4,5 @@ scikit-learn
 xgboost
 matplotlib
 joblib
+mediapipe
+opencv-python
