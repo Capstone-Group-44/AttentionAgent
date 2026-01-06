@@ -4,5 +4,5 @@ scikit-learn
 xgboost
 matplotlib
 joblib
-mediapipe--0.10.11
+mediapipe==0.10.11
 opencv-python
