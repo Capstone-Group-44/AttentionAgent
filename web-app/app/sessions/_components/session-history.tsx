@@ -9,7 +9,7 @@ export function SessionHistory() {
       </CardHeader>
 
       <CardContent className="p-0">
-        {/* Table header row */}
+
         <div className="grid grid-cols-[1fr_auto_auto_auto] gap-6 px-6 py-4 text-sm text-muted-foreground">
           <div />
           <div className="text-right">Duration</div>
