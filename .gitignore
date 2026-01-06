@@ -1,5 +1,6 @@
 .venv311
 __pycache__
+.venv
 
 # Data 
 data/
