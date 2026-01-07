@@ -1,6 +1,11 @@
 venv 
 __pycache__
+.venv
 
 # Data 
 data/
 *.csv
+
+# Database
+*.sqlite3
+.DS_Store
