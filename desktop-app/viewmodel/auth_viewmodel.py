@@ -4,6 +4,7 @@ import threading
 from PySide6.QtCore import QObject, Signal
 from model.user import User
 from flask import Flask, request
+import os
 
 
 class AuthViewModel(QObject):
@@ -34,7 +35,7 @@ class AuthViewModel(QObject):
     def start_local_server(self):
         self._server_thread = threading.Thread(
             target=lambda: self._flask_app.run(
-                port=5000, debug=False, use_reloader=False)
+                port=int(os.getenv("PORT")), debug=False, use_reloader=False)
         )
         self._server_thread.daemon = True
         self._server_thread.start()

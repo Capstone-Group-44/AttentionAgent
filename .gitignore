@@ -4,3 +4,6 @@ __pycache__
 # Data 
 data/
 *.csv
+
+.env
+
