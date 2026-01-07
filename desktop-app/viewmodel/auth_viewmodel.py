@@ -24,7 +24,7 @@ class AuthViewModel(QObject):
             uid = request.args.get("uid")
 
             if name and email and uid:
-                self.current_user = {"name": name, "email": email, "uid": uid}
+                self.current_user = User(name=name, email=email, uid=uid)
                 self.login_success.emit(name)
                 return "Login successful! You can close this window."
             else:
