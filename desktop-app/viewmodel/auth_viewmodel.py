@@ -5,9 +5,12 @@ from PySide6.QtCore import QObject, Signal
 from model.user import User
 from flask import Flask, request
 import os
+from dotenv import load_dotenv
 
 
 class AuthViewModel(QObject):
+    load_dotenv()
+
     login_success = Signal(str)
     login_failed = Signal(str)
 
