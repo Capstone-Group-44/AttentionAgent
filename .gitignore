@@ -1,10 +1,14 @@
 .venv311
+.venv
+
 __pycache__
 .venv
 
 # Data 
 data/
 *.csv
+
+.env
 
 # Database
 *.sqlite3

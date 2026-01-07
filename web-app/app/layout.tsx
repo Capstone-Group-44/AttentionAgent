@@ -32,7 +32,7 @@ export default function RootLayout({
         <ScrollArea>
           <div className="m-auto max-w-7xl space-y-3">
             <header className="p-5">
-              <NavigationBar/>
+              <NavigationBar />
             </header>
           </div>
         </ScrollArea>
