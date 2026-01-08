@@ -6,3 +6,6 @@ matplotlib
 joblib
 mediapipe==0.10.11
 opencv-python
+Flask
+PySide6
+python-dotenv

@@ -11,6 +11,49 @@ import {
 import { doc, getDoc, setDoc, getFirestore } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
+type FirebaseUserSnapshot = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+};
+
+const DESKTOP_CALLBACK_PORT =
+  process.env.NEXT_PUBLIC_DESKTOP_CALLBACK_PORT ?? "5000";
+const DESKTOP_CALLBACK_URL = `http://127.0.0.1:${DESKTOP_CALLBACK_PORT}`;
+
+async function notifyDesktop(user: FirebaseUserSnapshot | null) {
+  if (!user || !user.uid) {
+    return;
+  }
+
+  const email = user.email ?? "";
+  if (!email) {
+    console.warn("Desktop callback skipped because email was missing");
+    return;
+  }
+
+  const name = user.displayName || email.split("@")[0] || "User";
+  const payload = {
+    name,
+    email,
+    uid: user.uid,
+    display_name: user.displayName || name,
+    created_at: new Date().toISOString(),
+  };
+
+  try {
+    await fetch(`${DESKTOP_CALLBACK_URL}/callback`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.warn("Desktop login callback failed", error);
+  }
+}
+
 export default function LoginPage() {
   const db = getFirestore();
   const router = useRouter();
@@ -43,6 +86,8 @@ export default function LoginPage() {
         });
       }
 
+      await notifyDesktop(user);
+
       router.push("/");
     } catch (err: any) {
       setError(err.message);
@@ -57,7 +102,8 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      await notifyDesktop(credential.user);
       router.push("/");
     } catch (err: any) {
       setError(err.message);
@@ -80,6 +126,8 @@ export default function LoginPage() {
         displayName: email.split("@")[0],
         createdAt: new Date(),
       });
+
+      await notifyDesktop(user);
 
       router.push("/");
     } catch (err: any) {
