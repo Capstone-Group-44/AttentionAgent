@@ -58,3 +58,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+
+# Secrets
+desktop-app/keys
