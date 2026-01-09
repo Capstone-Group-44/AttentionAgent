@@ -30,3 +30,13 @@ class UserRepository:
 
         conn.close()
         return user
+
+    def get_user_by_username(self, username):
+        conn = self.db.connect()
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+        user = cur.fetchone()
+
+        conn.close()
+        return user
