@@ -120,7 +120,7 @@ class AuthViewModel(QObject):
     def register(self):
         if not self._server_thread or not self._server_thread.is_alive():
             self.start_local_server()
-        webbrowser.open("http://localhost:3000/login")
+        webbrowser.open("http://localhost:3000/register")
 
     def get_current_username(self) -> Optional[str]:
         return self.current_user.username if self.current_user else None
