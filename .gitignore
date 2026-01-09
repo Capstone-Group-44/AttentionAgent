@@ -13,3 +13,6 @@ data/
 # Database
 *.sqlite3
 .DS_Store
+
+# Secrets
+desktop-app/keys
