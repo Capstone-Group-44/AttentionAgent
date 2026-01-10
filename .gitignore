@@ -4,3 +4,4 @@ __pycache__
 # Data 
 data/
 *.csv
+.DS_Store

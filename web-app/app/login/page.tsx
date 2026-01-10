@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -12,7 +12,6 @@ import { doc, getDoc, setDoc, getFirestore } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const db = getFirestore();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
