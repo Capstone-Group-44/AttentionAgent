@@ -3,8 +3,10 @@
 import { use } from 'react'
 import { useEffect, useState } from 'react'
 import { getSession, type Session } from '@/lib/api/sessions'
+import { getReport, type Report } from '@/lib/api/reports'
 import { useAuthUser } from '@/lib/hooks/use-auth-user'
 import { auth } from '@/lib/firebase'
+import { formatDuration } from '@/lib/utils'
 
 export default function Page({
   params,
@@ -15,38 +17,85 @@ export default function Page({
   const { user, authReady } = useAuthUser()
 
   const [session, setSession] = useState<Session | null>(null)
+  const [report, setReport] = useState<Report | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    console.log('authReady:', authReady)
+    let cancelled = false
+
+    async function load() {
+      setError(null)
+      setLoading(true)
+
+      if (!authReady) return
+
+      if (!user) {
+        setError('Please log in to view this session.')
+        setLoading(false)
+        return
+      }
+      console.log('authReady:', authReady)
 console.log('user uid:', user?.uid)
 console.log('sessionId:', sessionId)
 
+      try {
+        const sessionData = await getSession(sessionId)
+        if (cancelled) return
 
-    if (!authReady) return // wait until firebase finishes loading auth state
+        setSession(sessionData)
 
-    if (!user) {
-      setError('Please log in to view this session.')
-      return
+        const reportData = await getReport(sessionId)
+        if (cancelled) return
+
+        setReport(reportData)
+      } catch (e) {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : 'Failed to load session')
+      } finally {
+        if (cancelled) return
+        setLoading(false)
+      }
     }
 
-    console.log('getSession currentUser:', auth.currentUser?.uid)
-
-    getSession(sessionId)
-      .then(setSession)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load session'))
+    load()
+    return () => {
+      cancelled = true
+    }
   }, [authReady, user, sessionId])
 
   if (!authReady) return <div className="p-6">Loading auth…</div>
+  if (loading) return <div className="p-6">Loading session…</div>
   if (error) return <div className="p-6 text-red-500">{error}</div>
-  if (!session) return <div className="p-6">Loading session…</div>
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold">Session Details</h1>
-      <p className="mt-4">
-        <strong>User ID:</strong> {session.userId}
-      </p>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold">Session Details</h1>
+        <p className="text-sm text-muted-foreground">
+          Session ID: {sessionId}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-lg border p-4">
+          <div className="text-sm text-muted-foreground">
+            Total Focus Time
+          </div>
+          <div className="mt-1 text-2xl font-semibold">
+            {report ? formatDuration(report.totalFocusTime) : '—'}
+          </div>
+        </div>
+
+        <div className="rounded-lg border p-4">
+          <div className="text-sm text-muted-foreground">
+            Focus Score
+          </div>
+          <div className="mt-1 text-2xl font-semibold">
+            {report ? `${Math.round(report.avgFocusScore)}/100` : '—'}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
