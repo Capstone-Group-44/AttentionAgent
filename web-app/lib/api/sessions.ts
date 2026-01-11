@@ -2,17 +2,18 @@ import { Timestamp, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export interface SessionResponse {
-  userID: string;
-  startTime: Timestamp;
-  endTime: Timestamp;
-  durationSeconds: number;
-  screenHeight: number;
-  screenWidth: number;
+  user_id: string;
+  start_time: Timestamp;
+  end_time: Timestamp;
+  duration_seconds: number;
+  screen_height: number;
+  screen_width: number;
 }
 
 export interface Session {
   id: string;
   userId: string;
+  durationsSeconds?: number;
 }
 
 export async function getSession(sessionId: string): Promise<Session> {
@@ -26,6 +27,7 @@ export async function getSession(sessionId: string): Promise<Session> {
   const data = response.data() as SessionResponse;
   return {
     id: response.id,
-    userId: data.userID,
+    userId: data.user_id,
+    durationsSeconds: data.duration_seconds,
   };
 }
