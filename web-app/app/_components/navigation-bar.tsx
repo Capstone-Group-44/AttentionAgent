@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { NAV_BAR } from '@/lib/constants'
+import { NAV_BAR } from "@/lib/constants";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -14,12 +14,12 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 const pages: Array<{
-    name: string
-    url: string
+  name: string;
+  url: string;
 }> = [
-    { name: 'Home', url: '/'},
-    { name: 'My Sessions', url: '/sessions'},
-]
+  { name: "Home", url: "/" },
+  { name: "My Sessions", url: "/sessions" },
+];
 
 export default function NavigationBar(): React.JSX.Element {
   return (
@@ -38,30 +38,23 @@ export default function NavigationBar(): React.JSX.Element {
 }
 
 export function NavMenu() {
-    const pathname = usePathname()
+  const pathname = usePathname();
 
-    return (
-        <NavigationMenu>
-            <NavigationMenuList >
-                {pages.map(({ name, url }) => (
-                    <NavigationMenuItem
-                        key = {url}
-                    >
-                        <NavigationMenuLink
-                            className={navigationMenuTriggerStyle()}
-                            active={pathname === url}
-                            asChild
-                        >
-                            <Link 
-                                href={url}
-                            >
-                                {name}
-                            </Link>
-                        </NavigationMenuLink>    
-                    </NavigationMenuItem>
-
-                ))}
-            </NavigationMenuList>
-        </NavigationMenu>
-    )
+  return (
+    <NavigationMenu>
+      <NavigationMenuList>
+        {pages.map(({ name, url }) => (
+          <NavigationMenuItem key={url}>
+            <NavigationMenuLink
+              className={navigationMenuTriggerStyle()}
+              active={pathname === url}
+              asChild
+            >
+              <Link href={url}>{name}</Link>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+        ))}
+      </NavigationMenuList>
+    </NavigationMenu>
+  );
 }
