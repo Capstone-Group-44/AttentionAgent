@@ -27,9 +27,18 @@ class MainWindow(QMainWindow):
         
         # Connect signals
         self.auth_viewmodel.login_success.connect(self.show_ml_control)
+        self.ml_view.logout_requested.connect(self.handle_logout)
+
+        # Auto-login if session exists
+        if self.auth_viewmodel.current_user:
+            self.show_ml_control()
 
     def show_ml_control(self):
         self.stacked_widget.setCurrentWidget(self.ml_view)
+
+    def handle_logout(self):
+        self.auth_viewmodel.logout()
+        self.stacked_widget.setCurrentWidget(self.auth_view)
 
 
 def main():

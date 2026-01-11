@@ -1,5 +1,6 @@
 import os
 import threading
+import json
 from datetime import datetime
 from typing import Optional
 
@@ -26,7 +27,9 @@ class AuthViewModel(QObject):
         self._server_thread: Optional[threading.Thread] = None
         self._callback_event = threading.Event()
         self._callback_error: Optional[str] = None
+        self._session_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".session.json")
         self._setup_routes()
+        self.load_session()
         self.start_local_server()
 
     def _setup_routes(self):
@@ -73,6 +76,7 @@ class AuthViewModel(QObject):
                 display_name=display_name,
                 created_at=created_at,
             )
+            self.save_session()
             self._callback_error = None
             self._callback_event.set()
             self.login_success.emit(name)
@@ -124,3 +128,29 @@ class AuthViewModel(QObject):
 
     def get_current_username(self) -> Optional[str]:
         return self.current_user.username if self.current_user else None
+
+    def save_session(self):
+        if self.current_user:
+            try:
+                with open(self._session_file, "w") as f:
+                    json.dump(self.current_user.__dict__, f)
+            except Exception as e:
+                print(f"Failed to save session: {e}")
+
+    def load_session(self):
+        if os.path.exists(self._session_file):
+            try:
+                with open(self._session_file, "r") as f:
+                    data = json.load(f)
+                    self.current_user = User(**data)
+            except Exception as e:
+                print(f"Failed to load session: {e}")
+                self.current_user = None
+
+    def logout(self):
+        self.current_user = None
+        if os.path.exists(self._session_file):
+            try:
+                os.remove(self._session_file)
+            except Exception as e:
+                print(f"Failed to remove session: {e}")

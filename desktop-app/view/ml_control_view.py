@@ -1,9 +1,11 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QLabel, QMessageBox, QHBoxLayout
 )
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Slot, Signal
 
 class MLControlView(QWidget):
+    logout_requested = Signal()
+
     def __init__(self, viewmodel):
         super().__init__()
         self.viewmodel = viewmodel
@@ -37,6 +39,12 @@ class MLControlView(QWidget):
         button_layout.addWidget(self.stop_button)
         
         layout.addLayout(button_layout)
+        
+        layout.addSpacing(20)
+        self.logout_button = QPushButton("Logout")
+        self.logout_button.setStyleSheet("background-color: #f44336; color: white;")
+        layout.addWidget(self.logout_button)
+        
         layout.addStretch()
         
         self.setLayout(layout)
@@ -44,6 +52,7 @@ class MLControlView(QWidget):
     def setup_connections(self):
         self.start_button.clicked.connect(self.viewmodel.start_ml_script)
         self.stop_button.clicked.connect(self.viewmodel.stop_ml_script)
+        self.logout_button.clicked.connect(self.logout_requested.emit)
         
         self.viewmodel.is_running_changed.connect(self.on_running_changed)
         self.viewmodel.error_occurred.connect(self.on_error)
