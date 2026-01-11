@@ -13,7 +13,8 @@ export interface SessionResponse {
 export interface Session {
   id: string;
   userId: string;
-  durationsSeconds?: number;
+  durationSeconds: number;
+  startTime: Timestamp;
 }
 
 export async function getSession(sessionId: string): Promise<Session> {
@@ -28,6 +29,7 @@ export async function getSession(sessionId: string): Promise<Session> {
   return {
     id: response.id,
     userId: data.user_id,
-    durationsSeconds: data.duration_seconds,
+    durationSeconds: data.duration_seconds,
+    startTime: data.start_time,
   };
 }

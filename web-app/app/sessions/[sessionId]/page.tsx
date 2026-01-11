@@ -6,7 +6,7 @@ import { getSession, type Session } from '@/lib/api/sessions'
 import { getReport, type Report } from '@/lib/api/reports'
 import { useAuthUser } from '@/lib/hooks/use-auth-user'
 import { auth } from '@/lib/firebase'
-import { formatDuration } from '@/lib/utils'
+import { formatDuration, formatSessionDateTime, focusScoreToPercent } from '@/lib/utils'
 
 export default function Page({
   params,
@@ -69,15 +69,26 @@ console.log('sessionId:', sessionId)
   if (error) return <div className="p-6 text-red-500">{error}</div>
 
   return (
-    <div className="p-6 space-y-6">
+<div className="mx-auto max-w-7xl p-6 space-y-6">
       <div>
         <h1 className="text-xl font-semibold">Session Details</h1>
-        <p className="text-sm text-muted-foreground">
-          Session ID: {sessionId}
-        </p>
+        {session && (
+    <p className="text-sm text-muted-foreground">
+      {formatSessionDateTime(session.startTime)}
+    </p>
+  )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-lg border p-4">
+          <div className="text-sm text-muted-foreground">
+            Focus Duration
+          </div>
+          <div className="mt-1 text-2xl font-semibold">
+            {session ? formatDuration(session?.durationSeconds) : '—'}
+          </div>
+        </div>
+
         <div className="rounded-lg border p-4">
           <div className="text-sm text-muted-foreground">
             Total Focus Time
@@ -92,7 +103,7 @@ console.log('sessionId:', sessionId)
             Focus Score
           </div>
           <div className="mt-1 text-2xl font-semibold">
-            {report ? `${Math.round(report.avgFocusScore)}/100` : '—'}
+            {report ? `${focusScoreToPercent(report.avgFocusScore)}/100` : "—"}
           </div>
         </div>
       </div>
