@@ -36,12 +36,11 @@ class AuthView(QWidget):
 
     @Slot()
     def login(self):
-        if self.viewmodel.login():
-            name = self.viewmodel.get_current_username()
-            self.status_label.setText(f"Logged in as {name}")
+        self.viewmodel.login()
 
     def on_login_success(self, username):
-        self.status_label.setText(f"Logged in as {username}")
+        # Navigation handled by Main Window
+        pass
 
     def on_login_failed(self, error_message):
         QMessageBox.critical(self, "Login Failed", error_message)
