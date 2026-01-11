@@ -8,6 +8,9 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  setPersistence,
+  signInWithPopup,
+  browserSessionPersistence,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
@@ -50,19 +53,21 @@ export default function LoginPage() {
     return () => unsub();
   }, [router]);
 
-  async function loginWithGoogle() {
-    setLoading(true);
-    setError("");
 
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
-    } catch (err: any) {
-      setError(err?.message ?? "Google sign-in failed.");
-      setLoading(false);
-    }
+async function loginWithGoogle() {
+  setLoading(true);
+  setError("");
+
+  try {
+    await setPersistence(auth, browserSessionPersistence); // good for incognito
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch (err: any) {
+    setError(err?.message ?? "Google sign-in failed.");
+  } finally {
+    setLoading(false);
   }
-
+}
   async function loginWithEmail(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
