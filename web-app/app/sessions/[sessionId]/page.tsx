@@ -7,6 +7,7 @@ import { getReport, type Report } from '@/lib/api/reports'
 import { useAuthUser } from '@/lib/hooks/use-auth-user'
 import { auth } from '@/lib/firebase'
 import { formatDuration, formatSessionDateTime, focusScoreToPercent } from '@/lib/utils'
+import { StatCard } from '@/components/stat-card'
 
 export default function Page({
   params,
@@ -79,34 +80,21 @@ console.log('sessionId:', sessionId)
   )}
       </div>
 
+
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-lg border p-4">
-          <div className="text-sm text-muted-foreground">
-            Focus Duration
-          </div>
-          <div className="mt-1 text-2xl font-semibold">
-            {session ? formatDuration(session?.durationSeconds) : '—'}
-          </div>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <div className="text-sm text-muted-foreground">
-            Total Focus Time
-          </div>
-          <div className="mt-1 text-2xl font-semibold">
-            {report ? formatDuration(report.totalFocusTime) : '—'}
-          </div>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <div className="text-sm text-muted-foreground">
-            Focus Score
-          </div>
-          <div className="mt-1 text-2xl font-semibold">
-            {report ? `${focusScoreToPercent(report.avgFocusScore)}/100` : "—"}
-          </div>
-        </div>
-      </div>
+  <StatCard
+    label="Focus Duration"
+    value={session ? formatDuration(session.durationSeconds) : "—"}
+  />
+  <StatCard
+    label="Total Focus Time"
+    value={report ? formatDuration(report.totalFocusTime) : "—"}
+  />
+  <StatCard
+    label="Focus Score"
+    value={report ? `${focusScoreToPercent(report.avgFocusScore)}/100` : "—"}
+  />
+</div>
     </div>
   )
 }
