@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { auth } from "@/lib/firebase";
+import { useEffect, useState } from "react";
+import { auth, db } from "@/lib/firebase";
 import {
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithPopup,
+  browserSessionPersistence,
 } from "firebase/auth";
-import { doc, getDoc, setDoc, getFirestore } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const db = getFirestore();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -20,37 +23,51 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // -----------------------------
-  // GOOGLE LOGIN
-  // -----------------------------
-  async function loginWithGoogle() {
-    setLoading(true);
-    setError("");
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
 
-    try {
-      const provider = new GoogleAuthProvider();
-      const res = await signInWithPopup(auth, provider);
-      const user = res.user;
+      try {
+        setLoading(true);
 
-      const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
+        // Create /users/{uid} if it doesn't exist
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
 
-      if (!snap.exists()) {
-        await setDoc(userRef, {
-          email: user.email,
-          displayName: user.displayName || "User",
-          createdAt: new Date(),
-        });
+        if (!snap.exists()) {
+          await setDoc(userRef, {
+            email: user.email,
+            displayName: user.displayName || user.email?.split("@")[0] || "User",
+            createdAt: serverTimestamp(),
+          });
+        }
+
+        router.replace("/");
+      } catch (e: any) {
+        setError(e?.message ?? "Failed to finish login.");
+      } finally {
+        setLoading(false);
       }
+    });
 
-      router.push("/");
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-    }
+    return () => unsub();
+  }, [router]);
+
+
+async function loginWithGoogle() {
+  setLoading(true);
+  setError("");
+
+  try {
+    await setPersistence(auth, browserSessionPersistence); // good for incognito
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch (err: any) {
+    setError(err?.message ?? "Google sign-in failed.");
+  } finally {
+    setLoading(false);
   }
-
-  // Email + password login
+}
   async function loginWithEmail(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -58,14 +75,13 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/");
+      router.replace("/");
     } catch (err: any) {
-      setError(err.message);
+      setError(err?.message ?? "Email sign-in failed.");
       setLoading(false);
     }
   }
 
-  // Register new users
   async function register() {
     setLoading(true);
     setError("");
@@ -74,16 +90,15 @@ export default function LoginPage() {
       const res = await createUserWithEmailAndPassword(auth, email, password);
       const user = res.user;
 
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
+      await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         displayName: email.split("@")[0],
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
       });
 
-      router.push("/");
+      router.replace("/");
     } catch (err: any) {
-      setError(err.message);
+      setError(err?.message ?? "Registration failed.");
       setLoading(false);
     }
   }
@@ -91,21 +106,16 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-100">
       <div className="p-8 bg-white rounded-xl shadow w-full max-w-sm space-y-6">
-
-        <h1 className="text-xl font-semibold text-center">
-          Login
-        </h1>
+        <h1 className="text-xl font-semibold text-center">Login</h1>
 
         {error && <p className="text-red-600 text-sm text-center">{error}</p>}
 
-        {/* Email Login */}
         <form onSubmit={loginWithEmail} className="space-y-4">
           <div>
             <label className="text-sm font-medium">Email</label>
             <input
               className="border p-2 rounded w-full"
               type="email"
-              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -117,7 +127,6 @@ export default function LoginPage() {
             <input
               className="border p-2 rounded w-full"
               type="password"
-              placeholder="•••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -127,7 +136,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-black text-white rounded hover:bg-gray-800"
+            className="w-full py-2 bg-black text-white rounded hover:bg-gray-800 disabled:opacity-60"
           >
             {loading ? "Logging in..." : "Login with Email"}
           </button>
@@ -136,20 +145,18 @@ export default function LoginPage() {
         <button
           onClick={register}
           disabled={loading}
-          className="w-full py-2 bg-gray-200 text-black rounded hover:bg-gray-300"
+          className="w-full py-2 bg-gray-200 text-black rounded hover:bg-gray-300 disabled:opacity-60"
         >
           Create Account
         </button>
 
-        {/* Google Login */}
         <button
           disabled={loading}
           onClick={loginWithGoogle}
-          className="w-full py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          className="w-full py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-60"
         >
           {loading ? "Signing in..." : "Sign in with Google"}
         </button>
-
       </div>
     </div>
   );

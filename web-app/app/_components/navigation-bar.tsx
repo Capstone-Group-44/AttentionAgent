@@ -9,9 +9,14 @@ import {
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu'
 import React from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
+import router from "next/router";
+import { useAuthUser } from "@/lib/hooks/use-auth-user";
+import { UserMenu } from "@/components/user-menu";
 
 const pages: Array<{
   name: string;
@@ -22,17 +27,15 @@ const pages: Array<{
 ];
 
 export default function NavigationBar(): React.JSX.Element {
+  
   return (
     <div className="flex w-full items-center justify-between">
     <div className="flex items-center gap-8">
       <span className="font-medium">{NAV_BAR.TITLE}</span>
       <NavMenu/>
     </div>
-    <Link href="/login">
-        <Button className="cursor-pointer">
-          Login
-        </Button>
-      </Link>
+    <UserMenu/>
+    
     </div>
   )
 }
