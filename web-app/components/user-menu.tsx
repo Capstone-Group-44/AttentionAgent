@@ -40,13 +40,14 @@ export function UserMenu() {
         <Button
           variant="ghost"
           size="icon"
+          className="cursor-pointer"
         >
           <SlidersHorizontal className="size-6" />
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
