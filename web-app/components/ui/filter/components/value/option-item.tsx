@@ -7,7 +7,7 @@ import {
 } from '@bazza-ui/dropdown-menu'
 import type { ColumnOptionExtended } from '@bazza-ui/filters'
 import { Checkbox } from '@/components/ui/checkbox'
-import { LabelWithBreadcrumbs } from '@/components/ui/filter-dropdown-menu'
+import { LabelWithBreadcrumbs } from '@/components/ui/dropdown-menu'
 
 export function OptionItem({ node: nodeProp, bind, search }: ItemSlotProps) {
   const props = bind.getRowProps({
