@@ -45,3 +45,18 @@ export function focusScoreToPercent(score: number): number {
   if (Number.isNaN(score)) return 0;
   return Math.round(score * 100);
 }
+
+export function getFirstName(user: {
+  displayName?: string | null;
+  email?: string | null;
+}) {
+  if (user.displayName) {
+    return user.displayName.split(" ")[0];
+  }
+
+  if (user.email) {
+    return user.email.split("@")[0];
+  }
+
+  return "there";
+}
