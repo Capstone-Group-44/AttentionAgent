@@ -8,6 +8,7 @@ import { useAuthUser } from '@/lib/hooks/use-auth-user'
 import { auth } from '@/lib/firebase'
 import { formatDuration, formatSessionDateTime, focusScoreToPercent } from '@/lib/utils'
 import { StatCard } from '@/components/stat-card'
+import { Clock, Hourglass, Timer, TrendingUp } from 'lucide-react'
 
 export default function Page({
   params,
@@ -83,16 +84,19 @@ console.log('sessionId:', sessionId)
 
 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
   <StatCard
-    label="Focus Duration"
+    label="Session Duration"
     value={session ? formatDuration(session.durationSeconds) : "—"}
+    icon={Clock}
   />
   <StatCard
     label="Total Focus Time"
     value={report ? formatDuration(report.totalFocusTime) : "—"}
+    icon={Hourglass}
   />
   <StatCard
     label="Focus Score"
     value={report ? `${focusScoreToPercent(report.avgFocusScore)}/100` : "—"}
+    icon={TrendingUp}
   />
 </div>
     </div>

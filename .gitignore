@@ -14,7 +14,7 @@ data/
 *.sqlite3
 .DS_Store
 
-# WEB-APP
+# WEB APP
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
@@ -57,3 +57,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
