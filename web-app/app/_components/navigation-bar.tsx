@@ -16,6 +16,7 @@ import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import router from "next/router";
 import { useAuthUser } from "@/lib/hooks/use-auth-user";
+import { UserMenu } from "@/components/user-menu";
 
 const pages: Array<{
   name: string;
@@ -26,29 +27,15 @@ const pages: Array<{
 ];
 
 export default function NavigationBar(): React.JSX.Element {
-  const { user, authReady } = useAuthUser();
-  const router = useRouter();
-
-  async function handleLogout() {
-    await signOut(auth);
-    router.push("/login");
-  }
-
+  
   return (
     <div className="flex w-full items-center justify-between">
     <div className="flex items-center gap-8">
       <span className="font-medium">{NAV_BAR.TITLE}</span>
       <NavMenu/>
     </div>
-    {!authReady ? null : user ? (
-        <Button onClick={handleLogout} className="cursor-pointer">
-          Logout
-        </Button>
-      ) : (
-        <Link href="/login">
-          <Button className="cursor-pointer">Login</Button>
-        </Link>
-      )}
+    <UserMenu/>
+    
     </div>
   )
 }
