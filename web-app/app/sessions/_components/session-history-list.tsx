@@ -9,7 +9,7 @@ import { formatDuration } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CalendarDays, ChevronRight } from 'lucide-react'
 
-export function SessionHistory() {
+export function SessionHistoryList() {
   const { user, authReady } = useAuthUser()
 
   const [sessions, setSessions] = useState<Session[]>([])
@@ -52,7 +52,6 @@ export function SessionHistory() {
 
 
   return (
-    <div className="mx-auto max-w-7xl p-6 ">
     <Card>
       <CardHeader className="flex flex-row items-center ">
         <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
@@ -85,6 +84,5 @@ export function SessionHistory() {
     </ul>
     </CardContent>
     </Card>
-  </div>
   )
 }

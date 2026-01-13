@@ -60,3 +60,14 @@ export function getFirstName(user: {
 
   return "there";
 }
+
+export function calcTotalFocusTime(reports: { totalFocusTime: number }[]) {
+  return reports.reduce((sum, r) => sum + r.totalFocusTime, 0);
+}
+
+export function calcAvgFocusScore(reports: { avgFocusScore: number }[]) {
+  if (!reports.length) return null;
+  const avg =
+    reports.reduce((sum, r) => sum + r.avgFocusScore, 0) / reports.length;
+  return Math.round(avg);
+}
