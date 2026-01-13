@@ -18,26 +18,24 @@ export const metadata: Metadata = {
   title: "Attention Agent",
   description: "Focus Monitoring Results Display",
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ScrollArea>
-          <div className="m-auto max-w-7xl space-y-3">
-            <header className="p-5">
+          <div className="mx-auto max-w-7xl px-16 py-5 space-y-6">
+            <header>
               <NavigationBar />
             </header>
+
+            <main>{children}</main>
           </div>
         </ScrollArea>
-        {children}
       </body>
     </html>
-  );
+  )
 }
