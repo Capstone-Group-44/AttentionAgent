@@ -1,4 +1,13 @@
-import { Timestamp, doc, getDoc } from "firebase/firestore";
+import {
+  Timestamp,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export interface SessionResponse {
@@ -32,4 +41,24 @@ export async function getSession(sessionId: string): Promise<Session> {
     durationSeconds: data.duration_seconds,
     startTime: data.start_time,
   };
+}
+
+export async function getUserSessions(userId: string): Promise<Session[]> {
+  const q = query(
+    collection(db, "sessions"),
+    where("user_id", "==", userId),
+    orderBy("start_time", "desc")
+  );
+
+  const snap = await getDocs(q);
+
+  return snap.docs.map((d) => {
+    const data = d.data() as SessionResponse;
+    return {
+      id: d.id,
+      userId: data.user_id,
+      durationSeconds: data.duration_seconds,
+      startTime: data.start_time,
+    };
+  });
 }
