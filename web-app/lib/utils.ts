@@ -69,5 +69,5 @@ export function calcAvgFocusScore(reports: { avgFocusScore: number }[]) {
   if (!reports.length) return null;
   const avg =
     reports.reduce((sum, r) => sum + r.avgFocusScore, 0) / reports.length;
-  return Math.round(avg);
+  return Math.round(avg * 100);
 }

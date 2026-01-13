@@ -11,13 +11,13 @@ import {
 import { db } from "@/lib/firebase";
 
 export interface ReportResponse {
-  avg_focus_score: number;
-  created_at: Timestamp;
+  avgFocusScore: number;
+  createdAt: Timestamp;
   notes: string;
-  session_id: string;
-  total_distraction_time: number;
-  total_focus_time: number;
-  user_id: string;
+  sessionId: string;
+  totalDistractionTime: number;
+  totalFocusTime: number;
+  userId: string;
 }
 
 export interface Report {
@@ -36,18 +36,18 @@ export async function getReport(sessionId: string): Promise<Report> {
   }
   const data = response.data() as ReportResponse;
   return {
-    avgFocusScore: data.avg_focus_score,
-    sessionId: data.session_id,
-    totalDistractionTime: data.total_distraction_time,
-    totalFocusTime: data.total_focus_time,
+    avgFocusScore: data.avgFocusScore,
+    sessionId: data.sessionId,
+    totalDistractionTime: data.totalDistractionTime,
+    totalFocusTime: data.totalFocusTime,
   };
 }
 
 export async function getUserReports(userId: string): Promise<Report[]> {
   const q = query(
     collection(db, "reports"),
-    where("user_id", "==", userId),
-    orderBy("created_at", "desc")
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
   );
 
   const snap = await getDocs(q);
@@ -55,11 +55,11 @@ export async function getUserReports(userId: string): Promise<Report[]> {
   return snap.docs.map((d) => {
     const data = d.data() as ReportResponse;
     return {
-      avgFocusScore: data.avg_focus_score,
-      sessionId: data.session_id,
-      totalDistractionTime: data.total_distraction_time,
-      totalFocusTime: data.total_focus_time,
-      createdAt: data.created_at,
+      avgFocusScore: data.avgFocusScore,
+      sessionId: data.sessionId,
+      totalDistractionTime: data.totalDistractionTime,
+      totalFocusTime: data.totalFocusTime,
+      createdAt: data.createdAt,
     };
   });
 }
