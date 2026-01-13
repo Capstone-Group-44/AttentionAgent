@@ -11,12 +11,12 @@ import {
 import { db } from "@/lib/firebase";
 
 export interface SessionResponse {
-  user_id: string;
-  start_time: Timestamp;
-  end_time: Timestamp;
-  duration_seconds: number;
-  screen_height: number;
-  screen_width: number;
+  userId: string;
+  startTime: Timestamp;
+  endTime: Timestamp;
+  durationSeconds: number;
+  screenHeight: number;
+  screenWidth: number;
 }
 
 export interface Session {
@@ -37,17 +37,17 @@ export async function getSession(sessionId: string): Promise<Session> {
   const data = response.data() as SessionResponse;
   return {
     id: response.id,
-    userId: data.user_id,
-    durationSeconds: data.duration_seconds,
-    startTime: data.start_time,
+    userId: data.userId,
+    durationSeconds: data.durationSeconds,
+    startTime: data.startTime,
   };
 }
 
 export async function getUserSessions(userId: string): Promise<Session[]> {
   const q = query(
     collection(db, "sessions"),
-    where("user_id", "==", userId),
-    orderBy("start_time", "desc")
+    where("userId", "==", userId),
+    orderBy("startTime", "desc")
   );
 
   const snap = await getDocs(q);
@@ -56,9 +56,9 @@ export async function getUserSessions(userId: string): Promise<Session[]> {
     const data = d.data() as SessionResponse;
     return {
       id: d.id,
-      userId: data.user_id,
-      durationSeconds: data.duration_seconds,
-      startTime: data.start_time,
+      userId: data.userId,
+      durationSeconds: data.durationSeconds,
+      startTime: data.startTime,
     };
   });
 }
