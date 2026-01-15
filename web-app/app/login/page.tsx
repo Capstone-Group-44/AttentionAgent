@@ -15,6 +15,49 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
+type FirebaseUserSnapshot = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+};
+
+const DESKTOP_CALLBACK_PORT =
+  process.env.NEXT_PUBLIC_DESKTOP_CALLBACK_PORT ?? "5000";
+const DESKTOP_CALLBACK_URL = `http://127.0.0.1:${DESKTOP_CALLBACK_PORT}`;
+
+async function notifyDesktop(user: FirebaseUserSnapshot | null) {
+  if (!user || !user.uid) {
+    return;
+  }
+
+  const email = user.email ?? "";
+  if (!email) {
+    console.warn("Desktop callback skipped because email was missing");
+    return;
+  }
+
+  const name = user.displayName || email.split("@")[0] || "User";
+  const payload = {
+    name,
+    email,
+    uid: user.uid,
+    display_name: user.displayName || name,
+    created_at: new Date().toISOString(),
+  };
+
+  try {
+    await fetch(`${DESKTOP_CALLBACK_URL}/callback`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.warn("Desktop login callback failed", error);
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -42,7 +85,9 @@ export default function LoginPage() {
           });
         }
 
-        router.replace("/");
+        await notifyDesktop(user);
+
+        router.push("/");
       } catch (e: any) {
         setError(e?.message ?? "Failed to finish login.");
       } finally {
@@ -74,8 +119,9 @@ async function loginWithGoogle() {
     setError("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.replace("/");
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      await notifyDesktop(credential.user);
+      router.push("/");
     } catch (err: any) {
       setError(err?.message ?? "Email sign-in failed.");
       setLoading(false);
@@ -96,7 +142,9 @@ async function loginWithGoogle() {
         createdAt: serverTimestamp(),
       });
 
-      router.replace("/");
+      await notifyDesktop(user);
+
+      router.push("/");
     } catch (err: any) {
       setError(err?.message ?? "Registration failed.");
       setLoading(false);
