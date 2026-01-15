@@ -1,4 +1,9 @@
+<<<<<<< HEAD
+venv 
+__pycache__
+=======
 .venv311
+>>>>>>> 8b9a2bab8b5f4ac9f0a35fd4a8461b0c71e65681
 .venv
 
 __pycache__
