@@ -9,6 +9,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getUserReports } from "./reports";
 
 export interface SessionResponse {
   userId: string;
@@ -25,6 +26,14 @@ export interface Session {
   durationSeconds: number;
   startTime: Timestamp;
 }
+
+export type SessionRow = {
+  id: string;
+  userId: string;
+  startTime: Timestamp;
+  durationSeconds: number;
+  avgFocusScore: number | null;
+};
 
 export async function getSession(sessionId: string): Promise<Session> {
   console.log("db is", db);
@@ -61,4 +70,23 @@ export async function getUserSessions(userId: string): Promise<Session[]> {
       startTime: data.startTime,
     };
   });
+}
+
+export async function getUserSessionRows(
+  userId: string
+): Promise<SessionRow[]> {
+  const [sessions, reports] = await Promise.all([
+    getUserSessions(userId),
+    getUserReports(userId),
+  ]);
+
+  const reportBySessionId = new Map(reports.map((r) => [r.sessionId, r]));
+
+  return sessions.map((s) => ({
+    id: s.id,
+    userId: s.userId,
+    startTime: s.startTime,
+    durationSeconds: s.durationSeconds,
+    avgFocusScore: reportBySessionId.get(s.id)?.avgFocusScore ?? null,
+  }));
 }
