@@ -86,6 +86,15 @@ export function createNumberUnitMenu<TData>({
     defaults: {
       item: { closeOnSelect: true },
     },
+    ui: {
+      slotProps: {
+        positioner: {
+          sub: {
+            align: "start",
+          },
+        },
+      },
+    },
     middleware: createNumberFilterMiddleware({ column, actions }),
   };
 }
