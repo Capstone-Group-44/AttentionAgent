@@ -23,10 +23,13 @@ import {
   flexRender,
 } from '@tanstack/react-table'
 import { tstColumnDefs } from "./_components/tst-columns";
+import { useRouter } from "next/navigation";
 
 
 export default function SessionsPage(){
-    const { user, authReady } = useAuthUser()
+  const router = useRouter();
+
+  const { user, authReady } = useAuthUser()
 
   const [totalFocus, setTotalFocus] = useState(0)
   const [avgFocus, setAvgFocus] = useState<number | null>(null)
@@ -146,37 +149,67 @@ return (
       {/* Tanstack table */}
 
       <div className="rounded-lg border overflow-hidden">
-  <table className="w-full text-sm">
-    <thead className="bg-muted/40">
-      {table.getHeaderGroups().map((headerGroup) => (
-        <tr key={headerGroup.id} className="border-b">
-          {headerGroup.headers.map((header) => (
-            <th
-              key={header.id}
-              className="text-left font-medium text-muted-foreground px-6 py-3"
-            >
-              {header.isPlaceholder
-                ? null
-                : flexRender(header.column.columnDef.header, header.getContext())}
-            </th>
-          ))}
-        </tr>
-      ))}
-    </thead>
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id} className="border-b">
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="text-left font-medium text-muted-foreground px-6 py-3"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                ))}
 
-    <tbody>
-      {table.getRowModel().rows.map((row) => (
-        <tr key={row.id} className="border-b last:border-b-0 hover:bg-muted/30">
-          {row.getVisibleCells().map((cell) => (
-            <td key={cell.id} className="px-6 py-3">
-              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-            </td>
-          ))}
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+                {/* Arrow column header */}
+                <th className="w-4 px-0 py-3"></th>
+              </tr>
+            ))}
+          </thead>
+
+
+          <tbody>
+            {table.getRowModel().rows.map((row) => {
+              const sessionId = row.original.id;
+
+              return (
+                <tr
+                  key={row.id}
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => router.push(`/sessions/${sessionId}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/sessions/${sessionId}`);
+                    }
+                  }}
+                  className="border-b last:border-b-0 hover:bg-muted/30 cursor-pointer"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-6 py-3">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+
+                  {/* Arrow indicator */}
+                  <td className="pr-4 py-3 text-right text-muted-foreground">
+                    <ChevronRight className="h-4 w-4" />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+
+
+        </table>
+    </div>
 
     </div>
   )}
