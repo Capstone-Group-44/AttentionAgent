@@ -41,7 +41,7 @@ export function formatSessionDateTime(ts: Timestamp): string {
   });
 }
 
-export function focusScoreToPercent(score: number): number {
+export function focusScoreToPercent(score: number) {
   if (Number.isNaN(score)) return 0;
   return Math.round(score * 100);
 }
@@ -70,4 +70,8 @@ export function calcAvgFocusScore(reports: { avgFocusScore: number }[]) {
   const avg =
     reports.reduce((sum, r) => sum + r.avgFocusScore, 0) / reports.length;
   return Math.round(avg * 100);
+}
+
+export function secondsToMinutes(seconds: number): number {
+  return Math.floor(seconds / 60);
 }

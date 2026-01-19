@@ -7,6 +7,7 @@ import {
   CircleDotDashedIcon,
 } from "lucide-react";
 import type { SessionRow } from "@/lib/api/sessions";
+import { formatDuration } from "@/lib/utils";
 
 const dtf = createColumnConfigHelper<SessionRow>();
 
@@ -23,12 +24,12 @@ export const columnsConfig = [
   // Duration
   dtf
     .number()
-    .id("durationSeconds")
-    .accessor((row) => row.durationSeconds)
-    .displayName("Duration (sec)")
+    .id("durationMinutes")
+    .accessor((row) => row.durationSeconds / 60)
+    .displayName("Duration (min)")
     .icon(ClockIcon)
     .min(0)
-    .max(60 * 60 * 8)
+    .max(1440) // 24 hours
     .build(),
 
   // Focus score

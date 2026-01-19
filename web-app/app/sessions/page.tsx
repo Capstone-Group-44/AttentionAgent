@@ -3,10 +3,10 @@ import { StatCard } from "@/components/stat-card";
 // import { SessionHistoryList } from "./_components/session-history-list";
 import { calcAvgFocusScore, calcTotalFocusTime, formatDuration } from "@/lib/utils";
 import { getUserReports } from "@/lib/api/reports";
-import { getUserSessions, Session } from "@/lib/api/sessions";
+import { getUserSessions, getUserSessionRows, Session } from "@/lib/api/sessions";
 import { useAuthUser } from "@/lib/hooks/use-auth-user";
-import { Clock, Layers, TrendingUp } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ChevronRight, Clock, Layers, TrendingUp } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { Filter } from '@/components/ui/filter'
 import { columnsConfig } from "./_components/filters";
 import { useDataTableFilters } from "@bazza-ui/filters";
@@ -14,6 +14,15 @@ import { set } from "date-fns";
 import type { Report } from "@/lib/api/reports";
 import type { SessionRow } from "@/lib/api/sessions"
 import type { FiltersState} from '@bazza-ui/filters'
+import Link from "next/link"
+import { createTSTColumns, createTSTFilters } from '@bazza-ui/filters/tanstack-table'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  flexRender,
+} from '@tanstack/react-table'
+import { tstColumnDefs } from "./_components/tst-columns";
 
 
 export default function SessionsPage(){
@@ -32,11 +41,12 @@ export default function SessionsPage(){
     const userId = user.uid
     async function loadStats() {
       const [sessionsData, reportsData] = await Promise.all([
-        getUserSessions(userId),
+        getUserSessionRows(userId),
         getUserReports(userId),
       ])
 
-      setSessionRows(sessionRows)
+      setSessionRows(sessionsData)
+      console.log("sessionsData", sessionsData)
       setSessionCount(sessionsData.length)
 
       const total = calcTotalFocusTime(reportsData);
@@ -57,6 +67,32 @@ export default function SessionsPage(){
   defaultFilters: []
 })
 
+  // Create TST-compatible columns with filter functions
+  const tstColumns = useMemo(
+    () =>
+      createTSTColumns({
+        columns: tstColumnDefs, 
+        configs: columns, // columns from useDataTableFilters       
+      }),
+    [columns],
+  )
+
+  // Convert filter state to TST format
+  const tstFilters = useMemo(
+    () => createTSTFilters(filters),
+    [filters]
+  )
+
+  const table = useReactTable({
+    data: sessionRows ?? [],
+    columns: tstColumns,
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    state: {
+      columnFilters: tstFilters
+    }
+  })
 
 return (
     <div className="space-y-6">
@@ -106,6 +142,41 @@ return (
           <Filter.Actions />
         </Filter.Root>
       </Filter.Provider>
+
+      {/* Tanstack table */}
+
+      <div className="rounded-lg border overflow-hidden">
+  <table className="w-full text-sm">
+    <thead className="bg-muted/40">
+      {table.getHeaderGroups().map((headerGroup) => (
+        <tr key={headerGroup.id} className="border-b">
+          {headerGroup.headers.map((header) => (
+            <th
+              key={header.id}
+              className="text-left font-medium text-muted-foreground px-6 py-3"
+            >
+              {header.isPlaceholder
+                ? null
+                : flexRender(header.column.columnDef.header, header.getContext())}
+            </th>
+          ))}
+        </tr>
+      ))}
+    </thead>
+
+    <tbody>
+      {table.getRowModel().rows.map((row) => (
+        <tr key={row.id} className="border-b last:border-b-0 hover:bg-muted/30">
+          {row.getVisibleCells().map((cell) => (
+            <td key={cell.id} className="px-6 py-3">
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
 
     </div>
   )}
