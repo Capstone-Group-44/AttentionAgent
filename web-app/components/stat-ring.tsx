@@ -24,7 +24,7 @@ export function StatRing({
   return (
         <div className="flex flex-col text-center items-center gap-4">
           {/* Ring */}
-          <div className="relative h-30 w-30 shrink-0">
+          <div className="relative h-35 w-35 shrink-0">
             <svg viewBox="0 0 80 80" className="-rotate-90">
               <circle
                 cx="40"
