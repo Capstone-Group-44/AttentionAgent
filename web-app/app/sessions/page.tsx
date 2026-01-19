@@ -117,10 +117,14 @@ return (
           icon={TrendingUp}
         />
       </div>
-{/* 
-      <SessionHistoryList /> */}
 
-      {/* Filter Table */}
+      {/* Session History header */}
+
+      <h1 className="text-xl font-semibold">Session History</h1>
+
+
+
+      {/* Filter */}
 
       <Filter.Provider
         columns={columns}
