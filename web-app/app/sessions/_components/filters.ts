@@ -37,7 +37,7 @@ export const columnsConfig = [
     .number()
     .id("avgFocusScore")
     .accessor((row) => row.avgFocusScore)
-    .displayName("Focus score")
+    .displayName("Focus Score")
     .icon(PercentIcon)
     .min(0)
     .max(100)
