@@ -16,7 +16,7 @@ export function ProgressCard() {
         <CardContent>
           <div className="grid gap-6 sm:grid-cols-3 justify-items-center">
 
-          <StatRing label={"Focus Time"} value={formatDuration(focusSecondsToday)} percent={0}/>
+          
           <StatRing
             label="Sessions"
             value={
@@ -26,6 +26,14 @@ export function ProgressCard() {
               </span>
             }
             percent={0}
+            colourClass="stroke-blue-600"
+          />
+
+          <StatRing 
+            label={"Focus Time"} 
+            value={formatDuration(focusSecondsToday)} 
+            percent={0}
+            colourClass="stroke-purple-600"
           />
 
           <StatRing
@@ -37,6 +45,7 @@ export function ProgressCard() {
               </span>
             }
             percent={0}
+            colourClass="stroke-green-600"
           />
 
           </div>
