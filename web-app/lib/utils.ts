@@ -42,6 +42,17 @@ export function formatSessionDateTime(ts: Timestamp): string {
   });
 }
 
+export function formatDateTime(date: Date) {
+  return date.toLocaleString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function focusScoreToPercent(score: number) {
   if (Number.isNaN(score)) return 0;
   return Math.round(score * 100);
