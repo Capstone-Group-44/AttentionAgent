@@ -5,6 +5,8 @@ import sys
 import os
 import time
 import csv
+import subprocess
+import signal
 
 # Add the project root to sys.path to allow importing from XGBoost and db.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -26,6 +28,7 @@ except ImportError:
 
 class FocusDetector:
     def __init__(self):
+        self._stop_requested = False
         self.mp_face_mesh = mp.solutions.face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(
             max_num_faces=1,
@@ -46,6 +49,14 @@ class FocusDetector:
 
         self._init_db()
         self._init_session()
+        self._install_signal_handlers()
+
+    def _install_signal_handlers(self):
+        def _handle_stop(_signum, _frame):
+            self._stop_requested = True
+        signal.signal(signal.SIGINT, _handle_stop)
+        if hasattr(signal, "SIGBREAK"):
+            signal.signal(signal.SIGBREAK, _handle_stop)
 
     def _init_db(self):
         self.db = Database()
@@ -68,10 +79,10 @@ class FocusDetector:
         return self.user_repo.create_user(username, display_name, email)
 
     def _save_sample(self, sample, focused_prediction, focused_probability):
-        attention_state = "UNKNOWN"
+        attention_state = None
         focus_score = None
         if focused_prediction is not None:
-            attention_state = "FOCUSED" if focused_prediction else "NOT_FOCUSED"
+            attention_state = 1 if focused_prediction else 0
             focus_score = focused_probability
 
         self.focus_repo.insert_sample(
@@ -91,8 +102,12 @@ class FocusDetector:
     def _close_db(self):
         if getattr(self, "session_id", None) and getattr(self, "session_start_time", None):
             duration = time.time() - self.session_start_time
-            self.session_repo.end_session(self.session_id, duration)
+            try:
+                self.session_repo.end_session(self.session_id, duration)
+            except Exception as e:
+                print(f"Failed to end session cleanly: {e}")
         self._export_csv()
+        self._sync_firestore()
 
     def _export_csv(self):
         db_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "db"))
@@ -109,6 +124,38 @@ class FocusDetector:
             writer.writerow(headers)
             writer.writerows(rows)
         print(f"Wrote CSV to {csv_path}")
+
+    def _sync_firestore(self):
+        script_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "scripts", "sync_firestore.py")
+        )
+        if not os.path.exists(script_path):
+            print(f"Sync script not found: {script_path}")
+            return
+        try:
+            db_path = self.db.db_path
+            key_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "keys",
+                             "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json")
+            )
+            project_id = os.environ.get("FIREBASE_PROJECT_ID", "attention-agent-30bd0")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-u",
+                    script_path,
+                    "--db-path", db_path,
+                    "--key-path", key_path,
+                    "--project-id", project_id,
+                ],
+                check=True,
+                text=True,
+                timeout=120,
+            )
+        except subprocess.TimeoutExpired:
+            print("Sync timed out after 120 seconds.")
+        except subprocess.CalledProcessError as e:
+            print(f"Sync failed: {e}")
 
     def get_landmark_coords(self, landmarks, idx, width, height):
         return (landmarks[idx].x * width, landmarks[idx].y * height)
@@ -129,7 +176,7 @@ class FocusDetector:
         print("Starting Focus Detector... Press 'q' to quit.")
 
         try:
-            while self.cap.isOpened():
+            while self.cap.isOpened() and not self._stop_requested:
                 success, image = self.cap.read()
                 if not success:
                     print("Ignoring empty camera frame.")
@@ -223,6 +270,8 @@ class FocusDetector:
                     break
         finally:
             self.cap.release()
+            if self.face_mesh:
+                self.face_mesh.close()
             self._close_db()
             cv2.destroyAllWindows()
 
