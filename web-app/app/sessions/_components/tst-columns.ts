@@ -1,15 +1,16 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { SessionRow } from "@/lib/api/sessions";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, formatSessionDateTime } from "@/lib/utils";
+import { Timestamp } from "firebase/firestore";
 
 export const tstColumnDefs: ColumnDef<SessionRow>[] = [
   {
     id: "startTime",
     header: "Date",
-    accessorFn: (r) => r.startTime.toDate(),
+    accessorFn: (r) => r.startTime, // Timestamp
     cell: ({ getValue }) => {
-      const date: Date = getValue<Date>();
-      return date.toLocaleString();
+      const ts = getValue<Timestamp>();
+      return formatSessionDateTime(ts);
     },
   },
   {
@@ -19,7 +20,7 @@ export const tstColumnDefs: ColumnDef<SessionRow>[] = [
   },
   {
     id: "avgFocusScore",
-    header: "Focus Score",
+    header: "Focus",
     accessorKey: "avgFocusScore",
 
     cell: ({ getValue }) => {
