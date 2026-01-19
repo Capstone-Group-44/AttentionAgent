@@ -71,7 +71,8 @@ console.log('sessionId:', sessionId)
   if (error) return <div className="p-6 text-red-500">{error}</div>
 
   return (
-<div className="mx-auto max-w-7xl p-6 space-y-6">
+    <div className="space-y-6">
+
       <div>
         <h1 className="text-xl font-semibold">Session Details</h1>
         {session && (
@@ -98,7 +99,7 @@ console.log('sessionId:', sessionId)
     value={report ? `${focusScoreToPercent(report.avgFocusScore)}/100` : "—"}
     icon={TrendingUp}
   />
-</div>
+  </div>
     </div>
   )
 }
