@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import signal
 from PySide6.QtCore import QObject, Signal
 
 class MLControlViewModel(QObject):
@@ -32,9 +33,13 @@ class MLControlViewModel(QObject):
                 return
 
             # Use the same python interpreter as the current process
+            creationflags = 0
+            if os.name == "nt":
+                creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
             self._process = subprocess.Popen(
                 [sys.executable, "main_ML.py"],
-                cwd=working_dir
+                cwd=working_dir,
+                creationflags=creationflags
             )
             self._is_running = True
             self.is_running_changed.emit(True)
@@ -45,7 +50,18 @@ class MLControlViewModel(QObject):
 
     def stop_ml_script(self):
         if self._process:
-            self._process.terminate()
+            try:
+                if os.name == "nt":
+                    self._process.send_signal(signal.CTRL_BREAK_EVENT)
+                else:
+                    self._process.terminate()
+                self._process.wait(timeout=5)
+            except Exception:
+                self._process.terminate()
+                try:
+                    self._process.wait(timeout=5)
+                except Exception:
+                    pass
             self._process = None
         
         self._is_running = False
