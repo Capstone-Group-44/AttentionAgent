@@ -26,10 +26,10 @@ export const columnsConfig = [
     .number()
     .id("durationMinutes")
     .accessor((row) => row.durationSeconds / 60)
-    .displayName("Duration (min)")
+    .displayName("Duration")
+    .meta({ number: { unit: "minutes" } }) // base unit
     .icon(ClockIcon)
     .min(0)
-    .max(1440) // 24 hours
     .build(),
 
   // Focus score

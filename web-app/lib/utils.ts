@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { Timestamp } from "firebase/firestore";
 import { twMerge } from "tailwind-merge";
+import ms, { type StringValue } from "ms";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -74,4 +75,37 @@ export function calcAvgFocusScore(reports: { avgFocusScore: number }[]) {
 
 export function secondsToMinutes(seconds: number): number {
   return Math.floor(seconds / 60);
+}
+
+export function parseDurationInput(
+  input: string,
+  unit: "seconds" | "minutes" | "hours"
+): number | null {
+  const trimmed = input.trim().toLowerCase();
+  if (!trimmed) return null;
+
+  // If it's a plain number, interpret as minutes
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const minutes = Number(trimmed);
+    switch (unit) {
+      case "seconds":
+        return minutes * 60;
+      case "minutes":
+        return minutes;
+      case "hours":
+        return minutes / 60;
+    }
+  }
+
+  const parsedMs = ms(trimmed as StringValue);
+  if (typeof parsedMs !== "number") return null;
+
+  switch (unit) {
+    case "seconds":
+      return parsedMs / 1000;
+    case "minutes":
+      return parsedMs / 60000;
+    case "hours":
+      return parsedMs / 3600000;
+  }
 }
