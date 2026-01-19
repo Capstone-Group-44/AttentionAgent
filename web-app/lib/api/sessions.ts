@@ -9,6 +9,9 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getUserReports } from "./reports";
+import { formatDuration } from "../utils";
+import { secondsToMinutes } from "date-fns";
 
 export interface SessionResponse {
   userId: string;
@@ -25,6 +28,14 @@ export interface Session {
   durationSeconds: number;
   startTime: Timestamp;
 }
+
+export type SessionRow = {
+  id: string;
+  userId: string;
+  startTime: Timestamp;
+  avgFocusScore: number | null;
+  durationSeconds: number;
+};
 
 export async function getSession(sessionId: string): Promise<Session> {
   console.log("db is", db);
@@ -59,6 +70,31 @@ export async function getUserSessions(userId: string): Promise<Session[]> {
       userId: data.userId,
       durationSeconds: data.durationSeconds,
       startTime: data.startTime,
+    };
+  });
+}
+
+import { focusScoreToPercent } from "@/lib/utils";
+
+export async function getUserSessionRows(
+  userId: string
+): Promise<SessionRow[]> {
+  const [sessions, reports] = await Promise.all([
+    getUserSessions(userId),
+    getUserReports(userId),
+  ]);
+
+  const reportBySessionId = new Map(reports.map((r) => [r.sessionId, r]));
+
+  return sessions.map((s) => {
+    const raw = reportBySessionId.get(s.id)?.avgFocusScore ?? null;
+
+    return {
+      id: s.id,
+      userId: s.userId,
+      startTime: s.startTime,
+      durationSeconds: s.durationSeconds,
+      avgFocusScore: raw === null ? null : focusScoreToPercent(raw),
     };
   });
 }

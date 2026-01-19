@@ -38,6 +38,7 @@ import {
   FilterValueNumberController,
   OptionItem,
 } from '../value'
+import { createNumberUnitMenu } from '../value/number-menu'
 
 function createDateMenu<TData>({
   filter,
@@ -181,6 +182,15 @@ function __FilterMenu<TData>({
             (f): f is FilterModel<'number'> =>
               f.columnId === column.id && f.type === 'number',
           )
+          const hasUnit = !!column.meta?.number?.unit
+          
+          if (hasUnit) {
+            return createNumberUnitMenu({
+              column,
+              actions,
+            })
+          }
+
           return createNumberMenu({
             filter: numberFilter as FilterModel<'number'>,
             column,

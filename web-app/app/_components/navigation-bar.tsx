@@ -30,10 +30,10 @@ export default function NavigationBar(): React.JSX.Element {
   
   return (
     <div className="flex w-full items-center justify-between">
-    <div className="flex items-center gap-8">
-      <span className="font-medium">{NAV_BAR.TITLE}</span>
-      <NavMenu/>
-    </div>
+      <div className="flex items-center gap-8">
+        <span className="text-xl flex items-center font-medium">{NAV_BAR.TITLE}</span>
+        <NavMenu/>
+      </div>
     <UserMenu/>
     
     </div>
@@ -44,12 +44,12 @@ export function NavMenu() {
   const pathname = usePathname();
 
   return (
-    <NavigationMenu>
+    <NavigationMenu className="flex items-center">
       <NavigationMenuList>
         {pages.map(({ name, url }) => (
           <NavigationMenuItem key={url}>
             <NavigationMenuLink
-              className={navigationMenuTriggerStyle()}
+              className={`${navigationMenuTriggerStyle()} h-10 flex items-center`}
               active={pathname === url}
               asChild
             >
