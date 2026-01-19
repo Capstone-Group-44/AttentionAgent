@@ -29,39 +29,32 @@ export function createNumberFilterMiddleware<TData>({
         | undefined;
 
       // default if missing
-      const baseUnit = unit ?? "minutes";
+      const baseUnit =
+        (column.meta?.number?.unit as "seconds" | "minutes" | "hours") ??
+        "minutes";
 
-      const n = parseDurationToUnit(query, baseUnit);
-      if (n === null) return [];
+      const parsed = parseDurationToUnit(query, baseUnit);
+      if (!parsed) return [];
 
-      // const n = Number(query);
-      // if (!Number.isFinite(n)) return [];
-
-      // use meta for label (for now, just show unit text)
-      // const unitLabel = column.meta?.number?.unit ?? "";
-      // const pretty = unitLabel ? `${n} ${unitLabel}` : `${n}`;
-
-      const unitLabel = unit === "minutes" ? "min" : unit;
-
-      const pretty = `${n} ${unitLabel}`;
+      const { value, display } = parsed;
 
       const apply = (operator: NumberFilterOperator) => {
         actions.batch((tx: any) => {
-          tx.setFilterValue(column, [n]);
+          tx.setFilterValue(column, [value]);
           tx.setFilterOperator(column.id, operator);
         });
       };
 
       const items: Array<[NumberFilterOperator, string]> = [
-        ["is", `is ${pretty}`],
-        ["is not", `is not ${pretty}`],
-        ["is greater than", `is greater than ${pretty}`],
+        ["is", `is ${display}`],
+        ["is not", `is not ${display}`],
+        ["is greater than", `is greater than ${display}`],
         [
           "is greater than or equal to",
-          `is greater than or equal to ${pretty}`,
+          `is greater than or equal to ${display}`,
         ],
-        ["is less than", `is less than ${pretty}`],
-        ["is less than or equal to", `is less than or equal to ${pretty}`],
+        ["is less than", `is less than ${display}`],
+        ["is less than or equal to", `is less than or equal to ${display}`],
       ];
 
       return items.map(([op, label]) =>
@@ -89,7 +82,7 @@ export function createNumberUnitMenu<TData>({
     id: column.id,
     icon: column.icon,
     label: column.displayName,
-    inputPlaceholder: `Enter ${column.displayName.toLowerCase()}...`,
+    inputPlaceholder: "Enter duration (e.g., 1h, 2 hours, 30mins)...",
     defaults: {
       item: { closeOnSelect: true },
     },
