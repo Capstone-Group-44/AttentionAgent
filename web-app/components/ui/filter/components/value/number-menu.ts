@@ -5,6 +5,7 @@ import type {
   NumberFilterOperator,
 } from "@bazza-ui/filters";
 import { SubmenuDef } from "@bazza-ui/dropdown-menu";
+import { parseDurationToUnit } from "@/lib/utils";
 
 export function createNumberFilterMiddleware<TData>({
   column,
@@ -19,13 +20,30 @@ export function createNumberFilterMiddleware<TData>({
 
       if (mode !== "search" || !query?.trim()) return [];
 
-      // only support plain numbers
-      const n = Number(query);
-      if (!Number.isFinite(n)) return [];
+      // support different units
+
+      const unit = (column as any).meta?.number?.unit as
+        | "seconds"
+        | "minutes"
+        | "hours"
+        | undefined;
+
+      // default if missing
+      const baseUnit = unit ?? "minutes";
+
+      const n = parseDurationToUnit(query, baseUnit);
+      if (n === null) return [];
+
+      // const n = Number(query);
+      // if (!Number.isFinite(n)) return [];
 
       // use meta for label (for now, just show unit text)
-      const unitLabel = column.meta?.number?.unit ?? "";
-      const pretty = unitLabel ? `${n} ${unitLabel}` : `${n}`;
+      // const unitLabel = column.meta?.number?.unit ?? "";
+      // const pretty = unitLabel ? `${n} ${unitLabel}` : `${n}`;
+
+      const unitLabel = unit === "minutes" ? "min" : unit;
+
+      const pretty = `${n} ${unitLabel}`;
 
       const apply = (operator: NumberFilterOperator) => {
         actions.batch((tx: any) => {

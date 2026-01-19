@@ -77,35 +77,34 @@ export function secondsToMinutes(seconds: number): number {
   return Math.floor(seconds / 60);
 }
 
-export function parseDurationInput(
+export type DurationUnit = "milliseconds" | "seconds" | "minutes" | "hours";
+
+/**
+ * Parses user input like "1h", "60 mins", "2.5 hours", "90s"
+ * into a NUMBER in the requested unit.
+ *
+ * If input is just "12" (no unit), we treat it as already in the unit.
+ */
+export function parseDurationToUnit(
   input: string,
-  unit: "seconds" | "minutes" | "hours"
+  unit: Exclude<DurationUnit, "milliseconds"> // seconds/minutes/hours
 ): number | null {
-  const trimmed = input.trim().toLowerCase();
-  if (!trimmed) return null;
+  const raw = input.trim().toLowerCase();
+  if (!raw) return null;
 
-  // If it's a plain number, interpret as minutes
-  if (/^\d+(\.\d+)?$/.test(trimmed)) {
-    const minutes = Number(trimmed);
-    switch (unit) {
-      case "seconds":
-        return minutes * 60;
-      case "minutes":
-        return minutes;
-      case "hours":
-        return minutes / 60;
-    }
-  }
+  // If user typed only a number, treat as already in the target unit
+  if (/^\d+(\.\d+)?$/.test(raw)) return Number(raw);
 
-  const parsedMs = ms(trimmed as StringValue);
-  if (typeof parsedMs !== "number") return null;
+  // Otherwise parse with ms()
+  const parsed = ms(raw as StringValue);
+  if (typeof parsed !== "number" || !Number.isFinite(parsed)) return null;
 
   switch (unit) {
     case "seconds":
-      return parsedMs / 1000;
+      return parsed / 1000;
     case "minutes":
-      return parsedMs / 60000;
+      return parsed / 60000;
     case "hours":
-      return parsedMs / 3600000;
+      return parsed / 3600000;
   }
 }
