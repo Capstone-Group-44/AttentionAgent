@@ -29,11 +29,11 @@ class MLControlView(QWidget):
         # Buttons
         button_layout = QHBoxLayout()
         
-        self.start_button = QPushButton("Start ML Algorithm")
+        self.start_button = QPushButton("Start Session")
         self.start_button.setMinimumHeight(50)
         button_layout.addWidget(self.start_button)
         
-        self.stop_button = QPushButton("Stop ML Algorithm")
+        self.stop_button = QPushButton("Stop Session")
         self.stop_button.setMinimumHeight(50)
         self.stop_button.setEnabled(False)
         button_layout.addWidget(self.stop_button)
