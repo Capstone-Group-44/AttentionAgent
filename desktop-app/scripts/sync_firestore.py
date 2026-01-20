@@ -3,6 +3,8 @@ import datetime
 import os
 import sqlite3
 import json
+import subprocess
+import sys
 
 import firebase_admin
 from firebase_admin import credentials
@@ -134,6 +136,34 @@ def _sync_focus_samples(conn, db, last_sync_ts):
     return max_timestamp
 
 
+def _run_build_reports(script_dir, db_path, key_path, project_id):
+    script_path = os.path.join(script_dir, "build_reports.py")
+    if not os.path.exists(script_path):
+        print(f"Report script not found: {script_path}")
+        return
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                "-u",
+                script_path,
+                "--db-path",
+                db_path,
+                "--key-path",
+                key_path,
+                "--project-id",
+                project_id,
+            ],
+            check=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        print("Report build timed out after 120 seconds.")
+    except subprocess.CalledProcessError as exc:
+        print(f"Report build failed: {exc}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Sync local SQLite data into Firestore."
@@ -188,6 +218,9 @@ def main():
     sync_state["sessions_last_sync"] = sessions_last
     sync_state["focus_samples_last_sync"] = samples_last
     _save_sync_state(state_path, sync_state)
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    _run_build_reports(script_dir, args.db_path, args.key_path, args.project_id)
 
     print("Sync complete.")
 
