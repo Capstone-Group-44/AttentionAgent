@@ -1,5 +1,14 @@
 from model.user import User
 
+"""
+User Model Tests
+----------------
+These tests verify the integrity of the 'User' data class.
+Since 'User' is primarily a data container, we check:
+1. All fields are correctly assigned upon initialization.
+2. Optional fields default to None when not provided.
+"""
+
 def test_user_creation():
     user = User(
         uid="123",
