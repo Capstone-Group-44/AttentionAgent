@@ -7,6 +7,7 @@ import time
 import csv
 import subprocess
 import signal
+import json
 
 # Add the project root to sys.path to allow importing from XGBoost and db.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -70,7 +71,34 @@ class FocusDetector:
         self.session_start_time = time.time()
         self.session_id = self.session_repo.start_session(user_id, self.screen_width, self.screen_height)
 
+    def _load_session_user(self):
+        session_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", ".session.json")
+        )
+        if not os.path.exists(session_path):
+            return None
+        try:
+            with open(session_path, "r") as f:
+                return json.load(f)
+        except Exception as exc:
+            print(f"Failed to load session file: {exc}")
+            return None
+
     def _get_or_create_user(self, username):
+        session_user = self._load_session_user()
+        if session_user and session_user.get("uid"):
+            user_id = session_user["uid"]
+            user = self.user_repo.get_user_by_id(user_id)
+            if not user:
+                self.user_repo.create_user_with_id(
+                    user_id=user_id,
+                    username=session_user.get("username") or username,
+                    display_name=session_user.get("display_name") or username,
+                    email=session_user.get("email") or f"{username}@local",
+                    created_at=session_user.get("created_at"),
+                )
+            return user_id
+
         user = self.user_repo.get_user_by_username(username)
         if user:
             return user[0]
