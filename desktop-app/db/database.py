@@ -4,11 +4,11 @@ import os
 class Database:
     def __init__(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.db_path = os.path.join(base_dir, "attagent.sqlite3")
+        self.db_path = os.path.join(base_dir, "focuscam.sqlite3")
         self._initialize()
 
     def connect(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=5)
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 

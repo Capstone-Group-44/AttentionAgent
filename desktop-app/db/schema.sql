@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS focus_samples (
     face_y FLOAT,
     face_z FLOAT,
 
-    attention_state TEXT,
+    attention_state INTEGER,
     focus_score FLOAT,
 
     FOREIGN KEY(session_id) REFERENCES sessions(session_id)
