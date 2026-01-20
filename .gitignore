@@ -66,3 +66,11 @@ next-env.d.ts
 
 # Secrets
 desktop-app/keys
+
+# Runtime / local state
+.session.json
+.sync_state.json
+
+# Desktop app generated state
+desktop-app/db/.sync_state.json
+desktop-app/.session.json
