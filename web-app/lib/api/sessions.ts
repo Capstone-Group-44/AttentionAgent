@@ -84,7 +84,7 @@ export async function getUserSessionRows(
     getUserReports(userId),
   ]);
 
-  const reportBySessionId = new Map(reports.map((r) => [r.sessionId, r]));
+  const reportBySessionId = new Map(reports.map((r) => [r.id, r]));
 
   return sessions.map((s) => {
     const raw = reportBySessionId.get(s.id)?.avgFocusScore ?? null;
