@@ -191,10 +191,8 @@ export function calcTodayProgress(
   const avgFocusScoreToday =
     todaysReports.length === 0
       ? null
-      : Math.round(
-          todaysReports.reduce((sum, r) => sum + r.avgFocusScore, 0) /
-            todaysReports.length
-        );
+      : todaysReports.reduce((sum, r) => sum + r.avgFocusScore, 0) /
+        todaysReports.length;
 
   return { focusSecondsToday, sessionsToday, avgFocusScoreToday };
 }

@@ -3,7 +3,7 @@
 import { StatRing } from "@/components/stat-ring";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthUser } from "@/lib/hooks/use-auth-user";
-import { formatDuration } from "@/lib/utils";
+import { focusScoreToPercent, formatDuration } from "@/lib/utils";
 import { useTodayProgress } from "@/lib/hooks/use-today-progress";
 
 export function ProgressCard() {
@@ -17,6 +17,10 @@ export function ProgressCard() {
   const focusSecondsToday = stats.focusSecondsToday
   const sessionsToday = stats.sessionsToday
   const avgFocusScoreToday = stats.avgFocusScoreToday ?? 0
+
+   // stats.avgFocusScoreToday is 0–1, convert to 0–100 for UI
+  const avgFocusScorePercent =
+    stats.avgFocusScoreToday == null ? 0 : focusScoreToPercent(stats.avgFocusScoreToday)
 
   if (!authReady || loading) {
     return <div>Loading...</div>
@@ -59,7 +63,7 @@ export function ProgressCard() {
             label="Average Focus Score"
             value={
               <span>
-                {avgFocusScoreToday}
+                {avgFocusScorePercent}
                 <span> / 100</span>
               </span>
             }
