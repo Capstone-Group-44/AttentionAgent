@@ -29,7 +29,11 @@ export function ProgressCard() {
   // Fixed goals for now
   const sessionsGoal = 6
   const focusGoalSeconds = 4 * 3600
-  const focusScoreGoal = 90
+  const focusScoreGoal = 95
+
+  const sessionsPercent = (sessionsToday / sessionsGoal) * 100
+  const focusPercent = (focusSecondsToday / focusGoalSeconds) * 100
+  const focusScorePercent = (avgFocusScorePercent / focusScoreGoal) * 100
 
   return (
     <Card className="">
@@ -48,15 +52,17 @@ export function ProgressCard() {
                 <span> Completed</span>
               </span>
             }
-            percent={0}
+            percent={sessionsPercent}
             colourClass="stroke-blue-600"
+            goal={sessionsGoal}
           />
 
           <StatRing 
             label={"Focus Time"} 
             value={formatDuration(focusSecondsToday)} 
-            percent={0}
+            percent={focusPercent}
             colourClass="stroke-purple-600"
+            goal={formatDuration(focusGoalSeconds)}
           />
 
           <StatRing
@@ -67,8 +73,12 @@ export function ProgressCard() {
                 <span> / 100</span>
               </span>
             }
-            percent={0}
+            percent={focusScorePercent}
             colourClass="stroke-green-600"
+            goal={<span>
+                {focusScoreGoal}
+                <span> / 100</span>
+              </span>}
           />
 
           </div>

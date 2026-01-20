@@ -15,6 +15,7 @@ export function StatRing({
   value,
   percent,
   colourClass = 'stroke-blue-600',
+  goal,
 }: StatRingProps) {
   const p = Math.max(0, Math.min(100, percent))
   const r = 34
@@ -54,6 +55,7 @@ export function StatRing({
           <div>
             <div className="text-sm text-muted-foreground">{label}</div>
             <div className="mt-1 text-l font-semibold">{value}</div>
+            <div className="text-xs text-muted-foreground">Goal: {goal}</div>
           </div>
         </div>
   )
