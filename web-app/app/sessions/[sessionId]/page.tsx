@@ -1,11 +1,7 @@
 'use client'
 
 import { use } from 'react'
-import { useEffect, useState } from 'react'
-import { getSession, type Session } from '@/lib/api/sessions'
-import { getReport, type Report } from '@/lib/api/reports'
 import { useAuthUser } from '@/lib/hooks/use-auth-user'
-import { auth } from '@/lib/firebase'
 import { formatDuration, formatSessionDateTime, focusScoreToPercent } from '@/lib/utils'
 import { StatCard } from '@/components/stat-card'
 import { Clock, Hourglass, Timer, TrendingUp } from 'lucide-react'
