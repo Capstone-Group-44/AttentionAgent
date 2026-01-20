@@ -85,7 +85,7 @@ def _sync_sessions(conn, db, last_sync_iso):
     max_start_time = last_sync_iso
     for row in cur.fetchall():
         doc = {
-            "userID": row["user_id"],
+            "userId": row["user_id"],
             "startTime": _parse_timestamp(row["start_time"]),
             "endTime": _parse_timestamp(row["end_time"]),
             "durationSeconds": row["duration_seconds"],
