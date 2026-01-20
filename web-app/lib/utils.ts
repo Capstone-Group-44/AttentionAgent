@@ -2,6 +2,8 @@ import { clsx, type ClassValue } from "clsx";
 import { Timestamp } from "firebase/firestore";
 import { twMerge } from "tailwind-merge";
 import ms, { type StringValue } from "ms";
+import { Session } from "./api/sessions";
+import { Report } from "./api/reports";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -157,4 +159,40 @@ export function parseDurationToUnit(
     value: storedValue,
     display: `${rounded} ${unitLabel}`,
   };
+}
+
+export function isSameLocalDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+export function calcTodayProgress(
+  sessions: Session[],
+  reports: Report[],
+  today = new Date()
+) {
+  const todaysSessions = sessions.filter((s) =>
+    isSameLocalDay(s.startTime.toDate(), today)
+  );
+  const todaysReports = reports.filter((r) =>
+    isSameLocalDay(r.createdAt.toDate(), today)
+  );
+
+  const focusSecondsToday = todaysSessions.reduce(
+    (sum, s) => sum + (s.durationSeconds ?? 0),
+    0
+  );
+
+  const sessionsToday = todaysSessions.length;
+
+  const avgFocusScoreToday =
+    todaysReports.length === 0
+      ? null
+      : todaysReports.reduce((sum, r) => sum + r.avgFocusScore, 0) /
+        todaysReports.length;
+
+  return { focusSecondsToday, sessionsToday, avgFocusScoreToday };
 }

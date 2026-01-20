@@ -28,7 +28,7 @@ export default function Home() {
         <ProgressCard>
 
         </ProgressCard>
-        <AchievementsCard/>
+        {/* <AchievementsCard/> */}
         </div>
 
   );

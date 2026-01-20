@@ -1,20 +1,12 @@
 "use client";
 import { StatCard } from "@/components/stat-card";
-// import { SessionHistoryList } from "./_components/session-history-list";
 import { calcAvgFocusScore, calcTotalFocusTime, formatDuration } from "@/lib/utils";
-import { getUserReports } from "@/lib/api/reports";
-import { getUserSessions, getUserSessionRows, Session } from "@/lib/api/sessions";
 import { useAuthUser } from "@/lib/hooks/use-auth-user";
 import { ChevronRight, Clock, Layers, TrendingUp } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Filter } from '@/components/ui/filter'
 import { columnsConfig } from "./_components/filters";
 import { useDataTableFilters } from "@bazza-ui/filters";
-import { set } from "date-fns";
-import type { Report } from "@/lib/api/reports";
-import type { SessionRow } from "@/lib/api/sessions"
-import type { FiltersState} from '@bazza-ui/filters'
-import Link from "next/link"
 import { createTSTColumns, createTSTFilters } from '@bazza-ui/filters/tanstack-table'
 import {
   useReactTable,
@@ -24,42 +16,27 @@ import {
 } from '@tanstack/react-table'
 import { tstColumnDefs } from "./_components/tst-columns";
 import { useRouter } from "next/navigation";
+import { useUserReports } from "@/lib/hooks/queries/reports";
+import { useUserSessionRows } from "@/lib/hooks/queries/session-rows";
 
 
 export default function SessionsPage(){
   const router = useRouter();
 
   const { user, authReady } = useAuthUser()
+  const userId = user?.uid
 
-  const [totalFocus, setTotalFocus] = useState(0)
-  const [avgFocus, setAvgFocus] = useState<number | null>(null)
-  const [sessionCount, setSessionCount] = useState(0)
-  const [sessionRows, setSessionRows] = useState<SessionRow[]>([])
+  const sessionRowsQ = useUserSessionRows(userId)
+  const reportsQ = useUserReports(userId)
 
-  const [filtersState, setFiltersState] = useState<FiltersState>([])
+  // Safe defaults so we can still call table/filter hooks
+  const sessionRows = sessionRowsQ.data ?? []
+  const reports = reportsQ.data ?? []
 
-  useEffect(() => {
-    if (!authReady || !user) return
+  const sessionCount = sessionRows.length
+  const totalFocus = calcTotalFocusTime(reports)
+  const avgFocus = calcAvgFocusScore(reports)
 
-    const userId = user.uid
-    async function loadStats() {
-      const [sessionsData, reportsData] = await Promise.all([
-        getUserSessionRows(userId),
-        getUserReports(userId),
-      ])
-
-      setSessionRows(sessionsData)
-      console.log("sessionsData", sessionsData)
-      setSessionCount(sessionsData.length)
-
-      const total = calcTotalFocusTime(reportsData);
-      setTotalFocus(total)
-
-      setAvgFocus(calcAvgFocusScore(reportsData))
-    }
-
-    loadStats()
-  }, [authReady, user])
 
   const { columns, filters, actions, strategy } = useDataTableFilters({
   strategy: 'client', 
@@ -96,6 +73,14 @@ export default function SessionsPage(){
       columnFilters: tstFilters
     }
   })
+
+// some error handling
+
+if (!authReady) return <div className="p-6">Loading auth…</div>
+if (!user) return <div className="p-6 text-red-500">Please log in.</div>
+if (sessionRowsQ.isLoading || reportsQ.isLoading) return <div className="p-6">Loading…</div>
+if (sessionRowsQ.error || reportsQ.error) return <div className="p-6 text-red-500">Failed to load data.</div>
+
 
 return (
     <div className="space-y-6">
