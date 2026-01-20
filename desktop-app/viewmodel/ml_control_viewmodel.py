@@ -48,21 +48,29 @@ class MLControlViewModel(QObject):
             self._is_running = False
             self.is_running_changed.emit(False)
 
-    def stop_ml_script(self):
-        if self._process:
+    def stop_ml_script(self): 
+        if not self._process:
+            return
+
+        try:
+            if os.name == "nt":
+                self._process.send_signal(signal.CTRL_BREAK_EVENT) # For Windows
+            else:
+                self._process.send_signal(signal.SIGINT) # For Unix-like systems
+
+            self._process.wait(timeout=5)
+        except Exception:
+            # If it doesn't terminate, kill it
             try:
-                if os.name == "nt":
-                    self._process.send_signal(signal.CTRL_BREAK_EVENT)
-                else:
-                    self._process.terminate()
+                self._process.terminate()
                 self._process.wait(timeout=5)
             except Exception:
-                self._process.terminate()
                 try:
-                    self._process.wait(timeout=5)
+                    self._process.kill()
+                    self._process.wait(timeout=5)   
                 except Exception:
-                    pass
-            self._process = None
+                    pass    
+        self._process = None
         
         self._is_running = False
         self.is_running_changed.emit(False)
