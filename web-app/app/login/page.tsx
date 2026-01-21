@@ -63,7 +63,11 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
+  
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -71,7 +75,7 @@ export default function LoginPage() {
       if (!user) return;
 
       try {
-        setLoading(true);
+        //setLoading(true);
 
         // Create /users/{uid} if it doesn't exist
         const userRef = doc(db, "users", user.uid);
@@ -91,7 +95,9 @@ export default function LoginPage() {
       } catch (e: any) {
         setError(e?.message ?? "Failed to finish login.");
       } finally {
-        setLoading(false);
+        setEmailLoading(false);
+        setGoogleLoading(false);
+        setRegisterLoading(false);
       }
     });
 
@@ -100,7 +106,7 @@ export default function LoginPage() {
 
 
 async function loginWithGoogle() {
-  setLoading(true);
+  setGoogleLoading(true);
   setError("");
 
   try {
@@ -110,12 +116,12 @@ async function loginWithGoogle() {
   } catch (err: any) {
     setError(err?.message ?? "Google sign-in failed.");
   } finally {
-    setLoading(false);
+    setGoogleLoading(false);
   }
 }
   async function loginWithEmail(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
+    setEmailLoading(true);
     setError("");
 
     try {
@@ -124,12 +130,12 @@ async function loginWithGoogle() {
       router.push("/");
     } catch (err: any) {
       setError(err?.message ?? "Email sign-in failed.");
-      setLoading(false);
+      setEmailLoading(false);
     }
   }
 
   async function register() {
-    setLoading(true);
+    setRegisterLoading(true);
     setError("");
 
     try {
@@ -147,12 +153,12 @@ async function loginWithGoogle() {
       router.push("/");
     } catch (err: any) {
       setError(err?.message ?? "Registration failed.");
-      setLoading(false);
+      setRegisterLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
+    <div className="flex pt-10 items-center justify-center">
       <div className="p-8 bg-white rounded-xl shadow w-full max-w-sm space-y-6">
         <h1 className="text-xl font-semibold text-center">Login</h1>
 
@@ -183,27 +189,27 @@ async function loginWithGoogle() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={emailLoading || googleLoading || registerLoading}
             className="w-full py-2 bg-black text-white rounded hover:bg-gray-800 disabled:opacity-60"
           >
-            {loading ? "Logging in..." : "Login with Email"}
+            {emailLoading ? "Logging in..." : "Login with Email"}
           </button>
         </form>
 
         <button
           onClick={register}
-          disabled={loading}
+          disabled={registerLoading || googleLoading || emailLoading}
           className="w-full py-2 bg-gray-200 text-black rounded hover:bg-gray-300 disabled:opacity-60"
         >
-          Create Account
+          {registerLoading ? "Creating..." : "Create Account"}
         </button>
 
         <button
-          disabled={loading}
+          disabled={googleLoading || emailLoading || registerLoading}
           onClick={loginWithGoogle}
           className="w-full py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-60"
         >
-          {loading ? "Signing in..." : "Sign in with Google"}
+          {googleLoading ? "Signing in..." : "Sign in with Google"}
         </button>
       </div>
     </div>
