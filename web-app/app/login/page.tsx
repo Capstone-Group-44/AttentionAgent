@@ -14,6 +14,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type FirebaseUserSnapshot = {
   uid: string;
@@ -66,7 +67,6 @@ export default function LoginPage() {
 
   const [emailLoading, setEmailLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [registerLoading, setRegisterLoading] = useState(false);
   
   const [error, setError] = useState("");
 
@@ -97,7 +97,6 @@ export default function LoginPage() {
       } finally {
         setEmailLoading(false);
         setGoogleLoading(false);
-        setRegisterLoading(false);
       }
     });
 
@@ -134,29 +133,6 @@ async function loginWithGoogle() {
     }
   }
 
-  async function register() {
-    setRegisterLoading(true);
-    setError("");
-
-    try {
-      const res = await createUserWithEmailAndPassword(auth, email, password);
-      const user = res.user;
-
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        displayName: email.split("@")[0],
-        createdAt: serverTimestamp(),
-      });
-
-      await notifyDesktop(user);
-
-      router.push("/");
-    } catch (err: any) {
-      setError(err?.message ?? "Registration failed.");
-      setRegisterLoading(false);
-    }
-  }
-
   return (
     <div className="flex pt-10 items-center justify-center">
       <div className="p-8 bg-white rounded-xl shadow w-full max-w-sm space-y-6">
@@ -189,7 +165,7 @@ async function loginWithGoogle() {
 
           <button
             type="submit"
-            disabled={emailLoading || googleLoading || registerLoading}
+            disabled={emailLoading || googleLoading}
             className="w-full py-2 bg-black text-white rounded hover:bg-gray-800 disabled:opacity-60"
           >
             {emailLoading ? "Logging in..." : "Login with Email"}
@@ -197,20 +173,19 @@ async function loginWithGoogle() {
         </form>
 
         <button
-          onClick={register}
-          disabled={registerLoading || googleLoading || emailLoading}
-          className="w-full py-2 bg-gray-200 text-black rounded hover:bg-gray-300 disabled:opacity-60"
-        >
-          {registerLoading ? "Creating..." : "Create Account"}
-        </button>
-
-        <button
-          disabled={googleLoading || emailLoading || registerLoading}
+          disabled={googleLoading || emailLoading}
           onClick={loginWithGoogle}
           className="w-full py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-60"
         >
           {googleLoading ? "Signing in..." : "Sign in with Google"}
         </button>
+        
+        <div className="text-center text-sm">
+            New to Focus Cam? {" "}
+            <Link href="/register" className="text-blue-600 hover:underline">
+              Register here
+            </Link>
+          </div>
       </div>
     </div>
   );
