@@ -41,8 +41,8 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-100">
-      <div className="p-8 bg-white rounded-xl shadow w-full max-w-sm space-y-6">
+    <div className="flex pt-10 items-center justify-center">
+      <div className="p-8 bg-white rounded-xl shadow w-full max-w-sm space-y-4">
         <h1 className="text-xl font-semibold text-center">Create Account</h1>
 
         {error && <p className="text-red-600 text-sm text-center">{error}</p>}
