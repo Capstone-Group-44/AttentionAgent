@@ -1,8 +1,13 @@
+<<<<<<< HEAD
+venv 
+__pycache__
+=======
 .venv311
+>>>>>>> 8b9a2bab8b5f4ac9f0a35fd4a8461b0c71e65681
 .venv
 
 __pycache__
-.venv
+venv/
 
 # Data 
 data/
@@ -58,3 +63,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+
+# Secrets
+desktop-app/keys
+
+# Runtime / local state
+.session.json
+.sync_state.json
+
+# Desktop app generated state
+desktop-app/db/.sync_state.json
+desktop-app/.session.json

@@ -21,6 +21,8 @@ export interface ReportResponse {
 }
 
 export interface Report {
+  id: string;
+  createdAt: Timestamp;
   avgFocusScore: number;
   sessionId: string;
   totalDistractionTime: number;
@@ -36,10 +38,12 @@ export async function getReport(sessionId: string): Promise<Report> {
   }
   const data = response.data() as ReportResponse;
   return {
+    id: response.id,
     avgFocusScore: data.avgFocusScore,
     sessionId: data.sessionId,
     totalDistractionTime: data.totalDistractionTime,
     totalFocusTime: data.totalFocusTime,
+    createdAt: data.createdAt,
   };
 }
 
@@ -55,6 +59,7 @@ export async function getUserReports(userId: string): Promise<Report[]> {
   return snap.docs.map((d) => {
     const data = d.data() as ReportResponse;
     return {
+      id: d.id,
       avgFocusScore: data.avgFocusScore,
       sessionId: data.sessionId,
       totalDistractionTime: data.totalDistractionTime,

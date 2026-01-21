@@ -38,7 +38,7 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(
     const Comp = asChild ? Slot : Button
 
     return (
-      <DropdownMenu.Trigger asChild>
+
         <Comp
           ref={ref}
           data-slot="filter-trigger"
@@ -56,7 +56,7 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(
             </>
           )}
         </Comp>
-      </DropdownMenu.Trigger>
+
     )
   },
 )
