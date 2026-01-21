@@ -55,9 +55,11 @@ class FocusDetector:
     def _install_signal_handlers(self):
         def _handle_stop(_signum, _frame):
             self._stop_requested = True
-        signal.signal(signal.SIGINT, _handle_stop)
+        signal.signal(signal.SIGINT, _handle_stop) # Handle Ctrl+C
+        if hasattr(signal, "SIGTERM"):
+            signal.signal(signal.SIGTERM, _handle_stop) # Handle termination Mac/Linux
         if hasattr(signal, "SIGBREAK"):
-            signal.signal(signal.SIGBREAK, _handle_stop)
+            signal.signal(signal.SIGBREAK, _handle_stop) # Handle Ctrl+Break on Windows
 
     def _init_db(self):
         self.db = Database()
