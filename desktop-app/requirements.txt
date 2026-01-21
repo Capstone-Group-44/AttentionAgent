@@ -9,3 +9,5 @@ opencv-python
 Flask
 PySide6
 python-dotenv
+pytest
+pytest-qt
