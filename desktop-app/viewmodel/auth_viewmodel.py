@@ -14,6 +14,12 @@ from model.user import User
 
 load_dotenv()
 
+def _join_url(base: str, path: str) -> str:
+    base = (base or "").rstrip("/")
+    path = (path or "").strip()
+    if not path.startswith("/"):
+        path = "/" + path
+    return base + path
 
 class AuthViewModel(QObject):
     login_success = Signal(str)
@@ -28,9 +34,16 @@ class AuthViewModel(QObject):
         self._callback_event = threading.Event()
         self._callback_error: Optional[str] = None
         self._session_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".session.json")
+
+        # Web app URLs (env-driven)
+        self._web_app_base_url = os.getenv("WEB_APP_BASE_URL", "http://localhost:3000")
+        self._web_login_path = os.getenv("WEB_APP_LOGIN_PATH", "/login")
+        self._web_register_path = os.getenv("WEB_APP_REGISTER_PATH", "/register")
+
         self._setup_routes()
         self.load_session()
         self.start_local_server()
+
 
     def _setup_routes(self):
         @self._flask_app.after_request
@@ -97,6 +110,12 @@ class AuthViewModel(QObject):
         self._server_thread.daemon = True
         self._server_thread.start()
 
+    def _web_login_url(self) -> str:
+        return _join_url(self._web_app_base_url, self._web_login_path)
+
+    def _web_register_url(self) -> str:
+        return _join_url(self._web_app_base_url, self._web_register_path)
+
     def login(self, timeout: float = 60.0) -> bool:
         if not self._server_thread or not self._server_thread.is_alive():
             self.start_local_server()
@@ -106,7 +125,7 @@ class AuthViewModel(QObject):
         self._callback_event.clear()
 
         try:
-            webbrowser.open("http://localhost:3000/login")
+            webbrowser.open(self._web_login_url())
         except Exception as exc:
             err_msg = f"Unable to open browser: {exc}"
             self.login_failed.emit(err_msg)
@@ -124,7 +143,7 @@ class AuthViewModel(QObject):
     def register(self):
         if not self._server_thread or not self._server_thread.is_alive():
             self.start_local_server()
-        webbrowser.open("http://localhost:3000/register")
+        webbrowser.open(self._web_register_url())
 
     def get_current_username(self) -> Optional[str]:
         return self.current_user.username if self.current_user else None

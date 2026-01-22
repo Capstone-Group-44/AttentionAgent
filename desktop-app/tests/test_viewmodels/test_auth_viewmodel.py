@@ -54,7 +54,7 @@ def test_login_starts_server_and_opens_browser(auth_viewmodel):
         
         result = auth_viewmodel.login(timeout=1.0)
         
-        mock_open.assert_called_with("http://localhost:3000/login")
+        mock_open.assert_called_with(auth_viewmodel._web_login_url())
         assert result is True
 
 def test_login_timeout(auth_viewmodel):
