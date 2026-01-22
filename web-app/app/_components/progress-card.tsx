@@ -28,7 +28,7 @@ export function ProgressCard() {
 
   // Fixed goals for now
   const sessionsGoal = 6
-  const focusGoalSeconds = 4 * 3600
+  const focusGoalSeconds = 1 * 3600
   const focusScoreGoal = 95
 
   const sessionsPercent = (sessionsToday / sessionsGoal) * 100
