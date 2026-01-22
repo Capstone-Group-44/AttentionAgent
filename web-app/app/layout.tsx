@@ -4,6 +4,7 @@ import "./globals.css";
 import NavigationBar from "./_components/navigation-bar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Providers } from "./providers";
+import { NAV_BAR } from "@/lib/constants";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Attention Agent",
+  title: NAV_BAR.TITLE,
   description: "Focus Monitoring Results Display",
 };
 export default function RootLayout({

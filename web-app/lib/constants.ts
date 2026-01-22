@@ -1,3 +1,3 @@
 export const NAV_BAR = {
-  TITLE: "Attention Agent",
+  TITLE: "Focus Cam",
 } as const;
