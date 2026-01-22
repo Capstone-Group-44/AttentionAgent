@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="overflow-y-scroll">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
         <ScrollArea>
