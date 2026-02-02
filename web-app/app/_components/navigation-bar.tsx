@@ -17,6 +17,7 @@ import { signOut } from "firebase/auth";
 import router from "next/router";
 import { useAuthUser } from "@/lib/hooks/use-auth-user";
 import { UserMenu } from "@/components/user-menu";
+import Image from "next/image";
 
 const pages: Array<{
   name: string;
@@ -30,10 +31,14 @@ export default function NavigationBar(): React.JSX.Element {
   
   return (
     <div className="flex w-full items-center justify-between">
-    <div className="flex items-center gap-8">
-      <span className="font-medium">{NAV_BAR.TITLE}</span>
-      <NavMenu/>
-    </div>
+      <div className="flex items-center gap-8">
+        <img
+          src="/logo.svg"
+          alt="Focus Cam"
+          className="h-7 w-auto"
+        />
+        <NavMenu/>
+      </div>
     <UserMenu/>
     
     </div>
@@ -44,12 +49,12 @@ export function NavMenu() {
   const pathname = usePathname();
 
   return (
-    <NavigationMenu>
+    <NavigationMenu className="flex items-center">
       <NavigationMenuList>
         {pages.map(({ name, url }) => (
           <NavigationMenuItem key={url}>
             <NavigationMenuLink
-              className={navigationMenuTriggerStyle()}
+              className={`${navigationMenuTriggerStyle()} h-10 px-4 text-base flex items-center`}
               active={pathname === url}
               asChild
             >

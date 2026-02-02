@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavigationBar from "./_components/navigation-bar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Providers } from "./providers";
+import { NAV_BAR } from "@/lib/constants";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,29 +17,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Attention Agent",
+  title: NAV_BAR.TITLE,
   description: "Focus Monitoring Results Display",
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className="overflow-y-scroll">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Providers>
         <ScrollArea>
-          <div className="m-auto max-w-7xl space-y-3">
-            <header className="p-5">
+          <div className="mx-auto max-w-7xl px-16 py-5 space-y-6">
+            <header>
               <NavigationBar />
             </header>
+
+            <main>{children}</main>
           </div>
         </ScrollArea>
-        {children}
+        </Providers>
       </body>
     </html>
-  );
+  )
 }

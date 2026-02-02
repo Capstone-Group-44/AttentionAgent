@@ -14,13 +14,60 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+type FirebaseUserSnapshot = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+};
+
+const DESKTOP_CALLBACK_PORT =
+  process.env.NEXT_PUBLIC_DESKTOP_CALLBACK_PORT ?? "5000";
+const DESKTOP_CALLBACK_URL = `http://127.0.0.1:${DESKTOP_CALLBACK_PORT}`;
+
+async function notifyDesktop(user: FirebaseUserSnapshot | null) {
+  if (!user || !user.uid) {
+    return;
+  }
+
+  const email = user.email ?? "";
+  if (!email) {
+    console.warn("Desktop callback skipped because email was missing");
+    return;
+  }
+
+  const name = user.displayName || email.split("@")[0] || "User";
+  const payload = {
+    name,
+    email,
+    uid: user.uid,
+    display_name: user.displayName || name,
+    created_at: new Date().toISOString(),
+  };
+
+  try {
+    await fetch(`${DESKTOP_CALLBACK_URL}/callback`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.warn("Desktop login callback failed", error);
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -28,7 +75,7 @@ export default function LoginPage() {
       if (!user) return;
 
       try {
-        setLoading(true);
+        //setLoading(true);
 
         // Create /users/{uid} if it doesn't exist
         const userRef = doc(db, "users", user.uid);
@@ -42,11 +89,14 @@ export default function LoginPage() {
           });
         }
 
-        router.replace("/");
+        await notifyDesktop(user);
+
+        router.push("/");
       } catch (e: any) {
         setError(e?.message ?? "Failed to finish login.");
       } finally {
-        setLoading(false);
+        setEmailLoading(false);
+        setGoogleLoading(false);
       }
     });
 
@@ -55,7 +105,7 @@ export default function LoginPage() {
 
 
 async function loginWithGoogle() {
-  setLoading(true);
+  setGoogleLoading(true);
   setError("");
 
   try {
@@ -65,47 +115,27 @@ async function loginWithGoogle() {
   } catch (err: any) {
     setError(err?.message ?? "Google sign-in failed.");
   } finally {
-    setLoading(false);
+    setGoogleLoading(false);
   }
 }
   async function loginWithEmail(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
+    setEmailLoading(true);
     setError("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.replace("/");
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      await notifyDesktop(credential.user);
+      router.push("/");
     } catch (err: any) {
       setError(err?.message ?? "Email sign-in failed.");
-      setLoading(false);
-    }
-  }
-
-  async function register() {
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await createUserWithEmailAndPassword(auth, email, password);
-      const user = res.user;
-
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        displayName: email.split("@")[0],
-        createdAt: serverTimestamp(),
-      });
-
-      router.replace("/");
-    } catch (err: any) {
-      setError(err?.message ?? "Registration failed.");
-      setLoading(false);
+      setEmailLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-100">
-      <div className="p-8 bg-white rounded-xl shadow w-full max-w-sm space-y-6">
+    <div className="flex pt-10 items-center justify-center">
+      <div className="p-8 bg-white rounded-xl shadow w-full max-w-sm space-y-4">
         <h1 className="text-xl font-semibold text-center">Login</h1>
 
         {error && <p className="text-red-600 text-sm text-center">{error}</p>}
@@ -135,28 +165,27 @@ async function loginWithGoogle() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={emailLoading || googleLoading}
             className="w-full py-2 bg-black text-white rounded hover:bg-gray-800 disabled:opacity-60"
           >
-            {loading ? "Logging in..." : "Login with Email"}
+            {emailLoading ? "Logging in..." : "Login with Email"}
           </button>
         </form>
 
         <button
-          onClick={register}
-          disabled={loading}
-          className="w-full py-2 bg-gray-200 text-black rounded hover:bg-gray-300 disabled:opacity-60"
-        >
-          Create Account
-        </button>
-
-        <button
-          disabled={loading}
+          disabled={googleLoading || emailLoading}
           onClick={loginWithGoogle}
           className="w-full py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-60"
         >
-          {loading ? "Signing in..." : "Sign in with Google"}
+          {googleLoading ? "Signing in..." : "Sign in with Google"}
         </button>
+        
+        <div className="text-center text-sm">
+            New to Focus Cam? {" "}
+            <Link href="/register" className="text-blue-600 hover:underline">
+              Register here
+            </Link>
+          </div>
       </div>
     </div>
   );

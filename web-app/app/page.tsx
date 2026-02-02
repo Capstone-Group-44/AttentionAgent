@@ -14,9 +14,7 @@ export default function Home() {
   if (!authReady) return null
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans ">
-      <main className="flex min-h-screen w-full max-w-6xl flex-col items-center justify-between py-10 px-16 bg-white  sm:items-start">
-        <div className="flex max-w-6xl w-full justify-center flex-col gap-10">
+           <div className="flex  justify-center flex-col gap-10">
       {user && (
         <div>
           <h1 className="text-2xl font-semibold">
@@ -30,9 +28,8 @@ export default function Home() {
         <ProgressCard>
 
         </ProgressCard>
-        <AchievementsCard/>
+        {/* <AchievementsCard/> */}
         </div>
-      </main>
-    </div>
+
   );
 }

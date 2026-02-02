@@ -1,8 +1,14 @@
-numpy
+numpy<2
 pandas
 scikit-learn
 xgboost
 matplotlib
 joblib
-mediapipe==0.10.11
+mediapipe==0.10.20
 opencv-python
+Flask
+PySide6
+python-dotenv
+pytest
+pytest-qt
+firebase-admin
