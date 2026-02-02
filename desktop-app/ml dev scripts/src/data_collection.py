@@ -12,7 +12,7 @@ import time
 
 OUTPUT_CSV = "attention_dataset.csv"
 FRAME_RATE = 30  # data is collected 30 times per second
-LABELS = {"FOCUSED": 0, "NOT_FOCUSED": 1}
+LABELS = {"FOCUSED": 1, "NOT_FOCUSED": 0}
 
 LEFT_EYE_IDX = [33, 133, 159, 145, 153, 154]
 RIGHT_EYE_IDX = [362, 263, 386, 374, 380, 381]
