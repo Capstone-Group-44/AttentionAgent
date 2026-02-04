@@ -2,19 +2,7 @@
 import { StatCard } from "@/components/stat-card";
 import { calcAvgFocusScore, calcTotalFocusTime, formatDuration } from "@/lib/utils";
 import { useAuthUser } from "@/lib/hooks/use-auth-user";
-import { ChevronRight, Clock, Layers, TrendingUp } from "lucide-react";
-import { useMemo } from "react";
-import { Filter } from '@/components/ui/filter'
-import { columnsConfig } from "./_components/filters";
-import { useDataTableFilters } from "@bazza-ui/filters";
-import { createTSTColumns, createTSTFilters } from '@bazza-ui/filters/tanstack-table'
-import {
-  useReactTable,
-  getCoreRowModel,
-  getFilteredRowModel,
-  flexRender,
-} from '@tanstack/react-table'
-import { tstColumnDefs } from "./_components/tst-columns";
+import { Clock, Layers, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUserReports } from "@/lib/hooks/queries/reports";
 import { useUserSessionRows } from "@/lib/hooks/queries/session-rows";
@@ -30,7 +18,7 @@ export default function SessionsPage(){
   const sessionRowsQ = useUserSessionRows(userId)
   const reportsQ = useUserReports(userId)
 
-  // Safe defaults so we can still call table/filter hooks
+  // Safe defaults while data loads
   const sessionRows = sessionRowsQ.data ?? []
   const reports = reportsQ.data ?? []
 
@@ -38,42 +26,6 @@ export default function SessionsPage(){
   const totalFocus = calcTotalFocusTime(reports)
   const avgFocus = calcAvgFocusScore(reports)
 
-
-  const { columns, filters, actions, strategy } = useDataTableFilters({
-  strategy: 'client', 
-  data: sessionRows ?? [],    
-  columnsConfig,
-  // filters: filtersState,
-  // onFiltersChange: setFiltersState,
-  defaultFilters: []
-  })
-
-  // Create TST-compatible columns with filter functions
-  const tstColumns = useMemo(
-    () =>
-      createTSTColumns({
-        columns: tstColumnDefs, 
-        configs: columns, // columns from useDataTableFilters       
-      }),
-    [columns],
-  )
-
-  // Convert filter state to TST format
-  const tstFilters = useMemo(
-    () => createTSTFilters(filters),
-    [filters]
-  )
-
-  const table = useReactTable({
-    data: sessionRows ?? [],
-    columns: tstColumns,
-    getRowId: (row) => row.id,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      columnFilters: tstFilters
-    }
-  })
 
 // some error handling
 
