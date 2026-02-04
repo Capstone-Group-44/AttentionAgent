@@ -18,6 +18,7 @@ import { tstColumnDefs } from "./_components/tst-columns";
 import { useRouter } from "next/navigation";
 import { useUserReports } from "@/lib/hooks/queries/reports";
 import { useUserSessionRows } from "@/lib/hooks/queries/session-rows";
+import { SessionHistoryTable } from "./_components/session-history-table";
 
 
 export default function SessionsPage(){
@@ -45,7 +46,7 @@ export default function SessionsPage(){
   // filters: filtersState,
   // onFiltersChange: setFiltersState,
   defaultFilters: []
-})
+  })
 
   // Create TST-compatible columns with filter functions
   const tstColumns = useMemo(
@@ -105,102 +106,15 @@ return (
         />
       </div>
 
-      {/* Session History header */}
+      {/* Session History Table */}
 
       <h1 className="text-xl font-semibold">Session History</h1>
 
-
-
-      {/* Filter */}
-
-      <Filter.Provider
-        columns={columns}
-        filters={filters}
-        actions={actions}
-        strategy={strategy}
-      >
-        <Filter.Root>
-          <div className="flex items-center gap-2">
-            <Filter.Menu />
-            <Filter.List>
-              {({ filter, column }) => (
-                <Filter.Item filter={filter} column={column}>
-                  <Filter.Subject />
-                  <Filter.Operator />
-                  <Filter.Value />
-                  <Filter.Remove />
-                </Filter.Item>
-              )}
-            </Filter.List>
-          </div>
-          <Filter.Actions />
-        </Filter.Root>
-      </Filter.Provider>
-
-      {/* Tanstack table */}
-
-      <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b">
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="text-left font-medium text-muted-foreground px-6 py-3"
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </th>
-                ))}
-
-                {/* Arrow column header */}
-                <th className="w-4 px-0 py-3"></th>
-              </tr>
-            ))}
-          </thead>
-
-
-          <tbody>
-            {table.getRowModel().rows.map((row) => {
-              const sessionId = row.original.id;
-
-              return (
-                <tr
-                  key={row.id}
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => router.push(`/sessions/${sessionId}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      router.push(`/sessions/${sessionId}`);
-                    }
-                  }}
-                  className="border-b last:border-b-0 hover:bg-muted/30 cursor-pointer"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-6 py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-
-                  {/* Arrow indicator */}
-                  <td className="pr-4 py-3 text-right text-muted-foreground">
-                    <ChevronRight className="h-4 w-4" />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-
-
-        </table>
-    </div>
-
+      <SessionHistoryTable
+        sessionRows={sessionRows}
+        onRowClick={(sessionId) => {
+          router.push(`/sessions/${sessionId}`)
+        }}
+      />
     </div>
   )}
