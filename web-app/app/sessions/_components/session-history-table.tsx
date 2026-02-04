@@ -105,7 +105,6 @@ export function SessionHistoryTable({
       {table.getHeaderGroups().map((headerGroup) => (
         <tr key={headerGroup.id} className="border-b">
           {headerGroup.headers.map((header) => {
-            // optional: right align numeric columns by id
             const id = header.column.id;
             const isNumeric = id === "duration" || id === "focusScore";
 
