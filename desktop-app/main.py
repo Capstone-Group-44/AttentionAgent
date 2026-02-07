@@ -2,8 +2,9 @@ import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from view.auth_view import AuthView
 from viewmodel.auth_viewmodel import AuthViewModel
-from view.ml_control_view import MLControlView
-from viewmodel.ml_control_viewmodel import MLControlViewModel
+from view.focus_view import FocusView
+from viewmodel.focus_viewmodel import FocusViewModel
+
 
 
 class MainWindow(QMainWindow):
@@ -15,29 +16,30 @@ class MainWindow(QMainWindow):
         self.auth_viewmodel = AuthViewModel()
         self.auth_view = AuthView(self.auth_viewmodel)
         
-        self.ml_viewmodel = MLControlViewModel()
-        self.ml_view = MLControlView(self.ml_viewmodel)
+        self.focus_viewmodel = FocusViewModel()
+        self.focus_view = FocusView(self.focus_viewmodel, self.auth_viewmodel)
 
         # Navigation setup
         self.stacked_widget = QStackedWidget()
         self.stacked_widget.addWidget(self.auth_view)
-        self.stacked_widget.addWidget(self.ml_view)
+        self.stacked_widget.addWidget(self.focus_view)
         
         self.setCentralWidget(self.stacked_widget)
         
         # Connect signals
-        self.auth_viewmodel.login_success.connect(self.show_ml_control)
-        self.ml_view.logout_requested.connect(self.handle_logout)
+        self.auth_viewmodel.login_success.connect(self.show_focus_view)
+        self.focus_view.logout_requested.connect(self.handle_logout)
 
         # Auto-login if session exists
         if self.auth_viewmodel.current_user:
-            self.show_ml_control()
+            self.show_focus_view()
 
-    def show_ml_control(self):
-        self.stacked_widget.setCurrentWidget(self.ml_view)
+    def show_focus_view(self):
+        self.stacked_widget.setCurrentWidget(self.focus_view)
 
     def handle_logout(self):
-        self.auth_viewmodel.logout()
+        # AuthViewModel logout is already called in ProfileDialog, 
+        # but good to ensure UI state consistency here if needed.
         self.stacked_widget.setCurrentWidget(self.auth_view)
 
 
