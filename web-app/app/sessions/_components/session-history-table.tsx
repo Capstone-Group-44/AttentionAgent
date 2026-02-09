@@ -22,14 +22,21 @@ import { ArrowUpDown } from "lucide-react";
 import { tstColumnDefs } from "./tst-columns";
 import type { SessionRow } from "@/lib/api/sessions";
 
+type FilteredSummary = {
+  totalSessions: number;
+  avgFocusScore: number | null;
+};
+
 type SessionHistoryTableProps = {
   sessionRows: SessionRow[];
   onRowClick: (sessionId: string) => void;
+  onFilteredSummaryChange?: (summary: FilteredSummary | null) => void;
 };
 
 export function SessionHistoryTable({
   sessionRows,
   onRowClick,
+  onFilteredSummaryChange,
 }: SessionHistoryTableProps) {
   const { columns, filters, actions, strategy } = useDataTableFilters({
     strategy: "client",
@@ -74,6 +81,30 @@ const [sorting, setSorting] = useState<SortingState>([
       sorting,
     },
   });
+
+  const filteredRows = table.getFilteredRowModel().rows;
+const filtersActive = tstFilters.length > 0; 
+
+const filteredSummary = useMemo<FilteredSummary>(() => {
+  const rows = filteredRows.map(r => r.original);
+
+  const totalSessions = rows.length;
+
+  // use sessionRows avgFocusScore field
+  const scores = rows
+    .map(r => r.avgFocusScore)
+    .filter((v): v is number => typeof v === "number" && v >= 0);
+
+  const avgFocusScore =
+    scores.length === 0 ? null : Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+
+  return { totalSessions, avgFocusScore };
+}, [filteredRows]);
+
+useEffect(() => {
+  onFilteredSummaryChange?.(filtersActive ? filteredSummary : null);
+}, [filtersActive, filteredSummary, onFilteredSummaryChange]);
+
 
 
   useEffect(() => {

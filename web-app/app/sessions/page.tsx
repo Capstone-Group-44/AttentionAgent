@@ -7,7 +7,12 @@ import { useRouter } from "next/navigation";
 import { useUserReports } from "@/lib/hooks/queries/reports";
 import { useUserSessionRows } from "@/lib/hooks/queries/session-rows";
 import { SessionHistoryTable } from "./_components/session-history-table";
+import { useState } from "react";
 
+type FilteredSummary = {
+  totalSessions: number;
+  avgFocusScore: number | null;
+};
 
 export default function SessionsPage(){
   const router = useRouter();
@@ -25,6 +30,9 @@ export default function SessionsPage(){
   const sessionCount = sessionRows.length
   const totalFocus = calcTotalFocusTime(reports)
   const avgFocus = calcAvgFocusScore(reports)
+
+  const [filteredSummary, setFilteredSummary] = useState<FilteredSummary | null>(null);
+
 
 
 // some error handling
@@ -58,6 +66,14 @@ return (
         />
       </div>
 
+      {/* show filtered summary only when filters are active */}
+      {filteredSummary && (
+        <div className="text-sm text-muted-foreground">
+          Filtered: {filteredSummary.totalSessions} sessions •{" "}
+          {filteredSummary.avgFocusScore === null ? "—" : `${filteredSummary.avgFocusScore}/100`} avg
+        </div>
+      )}
+
       {/* Session History Table */}
 
       <h1 className="text-xl font-semibold">Session History</h1>
@@ -67,6 +83,7 @@ return (
         onRowClick={(sessionId) => {
           router.push(`/sessions/${sessionId}`)
         }}
+        onFilteredSummaryChange={setFilteredSummary}
       />
     </div>
   )}
