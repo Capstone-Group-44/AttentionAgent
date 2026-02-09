@@ -19,7 +19,6 @@ import {
 } from "@tanstack/react-table";
 import type { SortingState } from "@tanstack/react-table"
 import { ArrowUpDown } from "lucide-react";
-} from "@tanstack/react-table";
 import { tstColumnDefs } from "./tst-columns";
 import type { SessionRow } from "@/lib/api/sessions";
 
