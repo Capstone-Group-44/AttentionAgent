@@ -5,10 +5,12 @@ import sqlite3
 import json
 import subprocess
 import sys
+import time
 
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
+from google.api_core import exceptions as gcp_exceptions
 
 
 def _parse_timestamp(value):
@@ -46,8 +48,44 @@ def _save_sync_state(state_path, state):
         json.dump(state, f)
     os.replace(tmp_path, state_path)
 
+def _commit_batch_with_retry(batch, batch_size, max_retries=10, base_delay=5.0):
+    """Commit a Firestore batch with basic backoff on quota errors."""
+    attempt = 0
+    while True:
+        # looping until commit succeeds or max retries exceeded
+        try:
+            batch.commit()
+            return
+        except (gcp_exceptions.ResourceExhausted, gcp_exceptions.RetryError):
+            attempt += 1
+            if attempt > max_retries:
+                raise
+            delay = base_delay * (2 ** (attempt - 1))
+            print(f"Quota hit. Retrying batch of {batch_size} in {delay:.1f}s...")
+            time.sleep(delay)
 
-def _sync_users(conn, db, last_sync_iso):
+def _batch_set(db, doc_ref, doc, batch, batch_count, max_batch_size, min_pause_sec=0.0):
+    batch.set(doc_ref, doc, merge=True)
+    batch_count += 1
+    committed = False
+    if batch_count >= max_batch_size:
+        _commit_batch_with_retry(batch, batch_count)
+        if min_pause_sec:
+            time.sleep(min_pause_sec)
+        batch = db.batch()
+        batch_count = 0
+        committed = True
+    return batch, batch_count, committed
+
+
+def _update_sync_state(state_path, sync_state, key, value):
+    if sync_state is None or state_path is None:
+        return
+    sync_state[key] = value
+    _save_sync_state(state_path, sync_state)
+
+
+def _sync_users(conn, db, last_sync_iso, sync_state=None, state_path=None):
     print("Syncing users...")
     params = ()
     query = "SELECT user_id, username, display_name, email, created_at FROM users"
@@ -56,6 +94,11 @@ def _sync_users(conn, db, last_sync_iso):
         params = (last_sync_iso,)
     cur = conn.execute(query, params)
     max_created_at = last_sync_iso
+    batch_max_created_at = max_created_at
+    batch = db.batch()
+    batch_count = 0
+    max_batch_size = 200
+    min_pause_sec = 0.25
     for row in cur.fetchall():
         doc = {
             "username": row["username"],
@@ -63,14 +106,26 @@ def _sync_users(conn, db, last_sync_iso):
             "email": row["email"],
             "createdAt": _parse_timestamp(row["created_at"]),
         }
-        db.collection("users").document(row["user_id"]).set(doc, merge=True)
-        if row["created_at"] and (max_created_at is None or row["created_at"] > max_created_at):
-            max_created_at = row["created_at"]
+        doc_ref = db.collection("users").document(row["user_id"])
+        batch, batch_count, committed = _batch_set(
+            db, doc_ref, doc, batch, batch_count, max_batch_size, min_pause_sec
+        )
+        if row["created_at"] and (
+            batch_max_created_at is None or row["created_at"] > batch_max_created_at
+        ):
+            batch_max_created_at = row["created_at"]
+        if committed:
+            max_created_at = batch_max_created_at
+            _update_sync_state(state_path, sync_state, "users_last_sync", max_created_at)
+    if batch_count:
+        _commit_batch_with_retry(batch, batch_count)
+        max_created_at = batch_max_created_at
+        _update_sync_state(state_path, sync_state, "users_last_sync", max_created_at)
     print("Users synced.")
     return max_created_at
 
 
-def _sync_sessions(conn, db, last_sync_iso):
+def _sync_sessions(conn, db, last_sync_iso, sync_state=None, state_path=None):
     print("Syncing sessions...")
     params = ()
     query = """
@@ -83,6 +138,11 @@ def _sync_sessions(conn, db, last_sync_iso):
         params = (last_sync_iso,)
     cur = conn.execute(query, params)
     max_start_time = last_sync_iso
+    batch_max_start_time = max_start_time
+    batch = db.batch()
+    batch_count = 0
+    max_batch_size = 200
+    min_pause_sec = 0.25
     for row in cur.fetchall():
         doc = {
             "userId": row["user_id"],
@@ -92,14 +152,26 @@ def _sync_sessions(conn, db, last_sync_iso):
             "screenWidth": row["screen_width"],
             "screenHeight": row["screen_height"],
         }
-        db.collection("sessions").document(row["session_id"]).set(doc, merge=True)
-        if row["start_time"] and (max_start_time is None or row["start_time"] > max_start_time):
-            max_start_time = row["start_time"]
+        doc_ref = db.collection("sessions").document(row["session_id"])
+        batch, batch_count, committed = _batch_set(
+            db, doc_ref, doc, batch, batch_count, max_batch_size, min_pause_sec
+        )
+        if row["start_time"] and (
+            batch_max_start_time is None or row["start_time"] > batch_max_start_time
+        ):
+            batch_max_start_time = row["start_time"]
+        if committed:
+            max_start_time = batch_max_start_time
+            _update_sync_state(state_path, sync_state, "sessions_last_sync", max_start_time)
+    if batch_count:
+        _commit_batch_with_retry(batch, batch_count)
+        max_start_time = batch_max_start_time
+        _update_sync_state(state_path, sync_state, "sessions_last_sync", max_start_time)
     print("Sessions synced.")
     return max_start_time
 
 
-def _sync_focus_samples(conn, db, last_sync_ts):
+def _sync_focus_samples(conn, db, last_sync_ts, sync_state=None, state_path=None):
     print("Syncing focus samples...")
     params = ()
     query = """
@@ -113,6 +185,11 @@ def _sync_focus_samples(conn, db, last_sync_ts):
         params = (last_sync_ts,)
     cur = conn.execute(query, params)
     max_timestamp = last_sync_ts
+    batch_max_timestamp = max_timestamp
+    batch = db.batch()
+    batch_count = 0
+    max_batch_size = 50
+    min_pause_sec = 2.0
     for row in cur.fetchall():
         doc = {
             "timestamp": _parse_timestamp(row["timestamp"]),
@@ -127,11 +204,25 @@ def _sync_focus_samples(conn, db, last_sync_ts):
             "focusScore": row["focus_score"],
         }
         session_ref = db.collection("sessions").document(row["session_id"])
-        session_ref.collection("focusSamples").document(
-            row["focus_sample_id"]
-        ).set(doc, merge=True)
-        if row["timestamp"] is not None and (max_timestamp is None or row["timestamp"] > max_timestamp):
-            max_timestamp = row["timestamp"]
+        doc_ref = session_ref.collection("focusSamples").document(row["focus_sample_id"])
+        batch, batch_count, committed = _batch_set(
+            db, doc_ref, doc, batch, batch_count, max_batch_size, min_pause_sec
+        )
+        if row["timestamp"] is not None and (
+            batch_max_timestamp is None or row["timestamp"] > batch_max_timestamp
+        ):
+            batch_max_timestamp = row["timestamp"]
+        if committed:
+            max_timestamp = batch_max_timestamp
+            _update_sync_state(
+                state_path, sync_state, "focus_samples_last_sync", max_timestamp
+            )
+    if batch_count:
+        _commit_batch_with_retry(batch, batch_count)
+        max_timestamp = batch_max_timestamp
+        _update_sync_state(
+            state_path, sync_state, "focus_samples_last_sync", max_timestamp
+        )
     print("Focus samples synced.")
     return max_timestamp
 
@@ -165,18 +256,20 @@ def _run_build_reports(script_dir, db_path, key_path, project_id):
 
 
 def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    desktop_root = os.path.abspath(os.path.join(script_dir, ".."))
     parser = argparse.ArgumentParser(
         description="Sync local SQLite data into Firestore."
     )
     parser.add_argument(
         "--db-path",
-        default=os.path.join("desktop-app", "db", "focuscam.sqlite3"),
+        default=os.path.join(desktop_root, "db", "focuscam.sqlite3"),
         help="Path to SQLite database file.",
     )
     parser.add_argument(
         "--key-path",
         default=os.path.join(
-            "desktop-app",
+            desktop_root,
             "keys",
             "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json",
         ),
@@ -208,9 +301,14 @@ def main():
         sessions_last = sync_state.get("sessions_last_sync")
         samples_last = sync_state.get("focus_samples_last_sync")
 
-        users_last = _sync_users(conn, db, users_last)
-        sessions_last = _sync_sessions(conn, db, sessions_last)
-        samples_last = _sync_focus_samples(conn, db, samples_last)
+        users_last = _sync_users(conn, db, users_last, sync_state, state_path)
+        sessions_last = _sync_sessions(conn, db, sessions_last, sync_state, state_path)
+        samples_last = _sync_focus_samples(conn, db, samples_last, sync_state, state_path)
+    except (gcp_exceptions.ResourceExhausted, gcp_exceptions.RetryError):
+        print(
+            "Firestore quota exceeded. Sync paused; rerun later to continue from the last saved state."
+        )
+        raise SystemExit(2)
     finally:
         conn.close()
 
@@ -219,7 +317,6 @@ def main():
     sync_state["focus_samples_last_sync"] = samples_last
     _save_sync_state(state_path, sync_state)
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
     _run_build_reports(script_dir, args.db_path, args.key_path, args.project_id)
 
     print("Sync complete.")
