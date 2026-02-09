@@ -15,7 +15,10 @@ import {
   getFilteredRowModel,
   flexRender,
   getPaginationRowModel,
+  getSortedRowModel,
 } from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table"
+import { ArrowUpDown } from "lucide-react";
 import { tstColumnDefs } from "./tst-columns";
 import type { SessionRow } from "@/lib/api/sessions";
 
@@ -51,6 +54,9 @@ export function SessionHistoryTable({
   pageSize: 10,
 });
 
+const [sorting, setSorting] = useState<SortingState>([
+  { id: "startTime", desc: true },
+]);
 
   const table = useReactTable({
     data: sessionRows,
@@ -59,10 +65,13 @@ export function SessionHistoryTable({
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     onPaginationChange: setPagination,
+    onSortingChange: setSorting,
     state: {
       columnFilters: tstFilters,
       pagination,
+      sorting,
     },
   });
 
@@ -70,6 +79,12 @@ export function SessionHistoryTable({
   useEffect(() => {
   setPagination((p) => ({ ...p, pageIndex: 0 }));
 }, [tstFilters]);
+
+ // reset to page 1 when filters/sorting change
+useEffect(() => {
+  setPagination((p) => ({ ...p, pageIndex: 0 }));
+}, [tstFilters, sorting]);
+
 
 
   return (
@@ -110,19 +125,32 @@ export function SessionHistoryTable({
 
             return (
               <th
-                key={header.id}
-                className={[
-                  "px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground",
-                  isNumeric ? "text-right" : "text-left",
-                ].join(" ")}
-              >
-                {header.isPlaceholder
-                  ? null
-                  : flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
-              </th>
+  key={header.id}
+  className={[
+    "px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground",
+    isNumeric ? "text-right" : "text-left",
+  ].join(" ")}
+>
+  {header.isPlaceholder ? null : (
+    <button
+      type="button"
+      className={[
+        "inline-flex items-center gap-1 select-none",
+        header.column.getCanSort() ? "cursor-pointer" : "cursor-default",
+        isNumeric ? "ml-auto" : "",
+      ].join(" ")}
+      onClick={header.column.getToggleSortingHandler()}
+      disabled={!header.column.getCanSort()}
+      aria-label={`Sort by ${String(header.column.id)}`}
+    >
+      {flexRender(header.column.columnDef.header, header.getContext())}
+      {header.column.getCanSort() && (
+        <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
+      )}
+    </button>
+  )}
+</th>
+
             );
           })}
 
