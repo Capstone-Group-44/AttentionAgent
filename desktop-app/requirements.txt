@@ -1,7 +1,7 @@
 numpy<2
 pandas
 scikit-learn
-xgboost
+xgboost==3.2.0
 matplotlib
 joblib
 mediapipe==0.10.20

@@ -1,94 +1,117 @@
-# src/train.py
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+import xgboost as xgb
 import os
-import joblib
+import numpy as np
+import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use("Agg")
 
-from sklearn.model_selection import StratifiedKFold, cross_validate, cross_val_predict
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix,
-)
+df = pd.read_csv(
+    "C:\\Uni Tests, Assignments, Labs\\Capstone Project\\Manual Collection Dataset\\master_dataset.csv")
 
-from .config import (
-    RANDOM_STATE,
-    MODEL_DIR,
-    MODEL_PATH,
-)
-from .data import load_and_prepare_data
-from .model import build_pipeline
-from .utils import ensure_dir, print_section
+feature_cols = [
+    'face_x', 'face_y', 'face_w', 'face_h',
+    'left_eye_x', 'left_eye_y', 'left_eye_w', 'left_eye_h',
+    'right_eye_x', 'right_eye_y', 'right_eye_w', 'right_eye_h',
+    'left_eye_dx', 'left_eye_dy',
+    'right_eye_dx', 'right_eye_dy', 'sym_dx', 'sym_dy', 'yaw', 'pitch', 'roll'
+]
 
+target_col = 'label'
+subjects = df['subject_id'].unique()
 
-def train_model():
-    # 1. Load and prepare data
-    X, y = load_and_prepare_data()
+os.makedirs("results", exist_ok=True)
+metrics_file = "results/loso_metrics.txt"
+fi_file = "results/feature_importances.csv"
 
-    # 2. Announce and configure cross-validation
-    print_section("CROSS-VALIDATION ENABLED")
-    n_splits = 5
-    print(f"Using StratifiedKFold cross-validation with {n_splits} folds.")
-    print("Each fold will train on 80% of the data and validate on 20%,")
-    print("cycling through all possible folds to evaluate the model robustly.")
+with open(metrics_file, "w") as f:
+    f.write("Test_Subject\tAccuracy\tF1\n")
 
-    skf = StratifiedKFold(
-        n_splits=n_splits,
-        shuffle=True,
-        random_state=RANDOM_STATE,
+fi_all = []
+
+for test_subject in subjects:
+    print(f"\n===== Testing on Subject {test_subject} =====")
+
+    train_df = df[df['subject_id'] != test_subject]
+    test_df = df[df['subject_id'] == test_subject]
+
+    X_train = train_df[feature_cols]
+    y_train = train_df[target_col]
+
+    X_test = test_df[feature_cols]
+    y_test = test_df[target_col]
+
+    X_train_inner, X_val, y_train_inner, y_val = train_test_split(
+        X_train, y_train,
+        test_size=0.2,
+        stratify=y_train,
+        random_state=42
     )
 
-    # 3. Build pipeline for cross-validation
-    pipeline = build_pipeline(X.columns)
+    # Convert to DMatrix (required for xgb.train)
+    dtrain = xgb.DMatrix(X_train_inner, label=y_train_inner)
+    dval = xgb.DMatrix(X_val, label=y_val)
+    dtest = xgb.DMatrix(X_test, label=y_test)
 
-    # 4. Run cross-validation
-    print_section("RUNNING CROSS-VALIDATION (this may take a moment)")
-    scoring = ["accuracy", "precision", "recall", "f1"]
+    params = {
+        "objective": "binary:logistic",
+        "eval_metric": "logloss",
+        "max_depth": 6,
+        "learning_rate": 0.05,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "seed": 42
+    }
 
-    cv_results = cross_validate(
-        pipeline,
-        X,
-        y,
-        cv=skf,
-        scoring=scoring,
-        return_train_score=False,
-        n_jobs=-1,
+    evals = [(dtrain, "train"), (dval, "val")]
+
+    bst = xgb.train(
+        params,
+        dtrain,
+        num_boost_round=1000,
+        evals=evals,
+        early_stopping_rounds=10,
+        verbose_eval=True
     )
 
-    print("\nCross-validation results (mean ± std across all folds):\n")
-    for metric in scoring:
-        scores = cv_results[f"test_{metric}"]
-        print(f"  {metric.capitalize():<10}: {scores.mean():.4f} ± {scores.std():.4f}")
+    y_pred = (bst.predict(dtest) > 0.5).astype(int)
+    acc = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
 
-    # 5. Out-of-fold predictions for a detailed evaluation
-    print_section("CROSS-VALIDATED PREDICTIONS (combined from all folds)")
-    y_pred_cv = cross_val_predict(
-        build_pipeline(X.columns),
-        X,
-        y,
-        cv=skf,
-        n_jobs=-1,
-    )
+    print(f"Accuracy: {acc:.4f}, F1: {f1:.4f}")
 
-    overall_acc = accuracy_score(y, y_pred_cv)
-    print(f"Overall Accuracy (from CV predictions): {overall_acc:.4f}\n")
+    with open(metrics_file, "a") as f:
+        f.write(f"{test_subject}\t{acc:.4f}\t{f1:.4f}\n")
 
-    print("Classification Report (based on CV predictions):")
-    print(classification_report(y, y_pred_cv))
+    fi = pd.DataFrame({
+        "Feature": feature_cols,
+        "Importance": bst.get_score(importance_type='weight').values(),
+        "Test_Subject": test_subject
+    })
 
-    print("Confusion Matrix (based on CV predictions):")
-    print(confusion_matrix(y, y_pred_cv))
+    # Some features may be missing if not used in splits
+    if len(fi) < len(feature_cols):
+        missing = set(feature_cols) - set(fi["Feature"])
+        for m in missing:
+            fi = pd.concat([fi, pd.DataFrame(
+                {"Feature": [m], "Importance": [0], "Test_Subject": [test_subject]})])
+    fi_all.append(fi)
 
-    # 6. Train final model on all data
-    print_section("TRAINING FINAL MODEL ON FULL DATASET")
-    final_pipeline = build_pipeline(X.columns)
-    final_pipeline.fit(X, y)
+    # Plot feature importances
+    plt.figure(figsize=(8, 6))
+    xgb.plot_importance(bst, importance_type='weight', height=0.6)
+    plt.title(f"Feature Importances - Subject {test_subject}")
+    plt.tight_layout()
+    plt.savefig(f"results/feature_importance_subject_{test_subject}.png")
+    plt.close()
 
-    # 7. Save the final trained model
-    ensure_dir(MODEL_DIR)
-    joblib.dump(final_pipeline, MODEL_PATH)
+fi_df = pd.concat(fi_all, ignore_index=True)
+fi_df.to_csv(fi_file, index=False)
 
-    print_section("MODEL SAVED SUCCESSFULLY")
-    print(f"Model stored at: {MODEL_PATH}")
-    print("\nNOTE:")
-    print("This model was trained AFTER cross-validation on the full dataset.")
-    print("Cross-validation was used ONLY to evaluate performance,")
-    print("not to generate the final model file.\n")
+metrics_df = pd.read_csv(metrics_file, sep="\t")
+print("\nPer Subject Results:")
+print(metrics_df)
+print("\nAverage Accuracy:", metrics_df["Accuracy"].mean())
+print("Average F1:", metrics_df["F1"].mean())

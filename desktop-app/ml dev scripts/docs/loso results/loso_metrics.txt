@@ -1,0 +1,16 @@
+Test_Subject	Accuracy	F1
+1	0.7331	0.7933
+2	0.7597	0.8450
+3	0.8973	0.9395
+4	0.8383	0.9034
+
+--Terminal Output--
+Per Subject Results:
+   Test_Subject  Accuracy      F1
+0             1    0.7331  0.7933
+1             2    0.7597  0.8450
+2             3    0.8973  0.9395
+3             4    0.8383  0.9034
+
+Average Accuracy: 0.8070999999999999
+Average F1: 0.8703
