@@ -8,6 +8,7 @@ import { Clock, Hourglass, Timer, TrendingUp } from 'lucide-react'
 import { useRouter } from "next/navigation";
 import { useUserReports } from "@/lib/hooks/queries/reports";
 import { useUserSessionRows } from "@/lib/hooks/queries/session-rows";
+import { AuthRequired } from '@/app/_components/auth-required'
 import { useSessionFocusSamples } from "@/lib/hooks/queries/focus-samples";
 import { FocusTrendChart } from "../_components/focus-trend-chart";
 export default function Page({
@@ -18,6 +19,8 @@ export default function Page({
   const router = useRouter();
   const { sessionId } = use(params)
   const { user, authReady } = useAuthUser()
+  if (!authReady) return null;
+  if (!user) return <AuthRequired message="Log in to view your session history." />;
 
   const sessionRowsQ = useUserSessionRows(user?.uid)
   const reportsQ = useUserReports(user?.uid)

@@ -8,6 +8,7 @@ import { useUserReports } from "@/lib/hooks/queries/reports";
 import { useUserSessionRows } from "@/lib/hooks/queries/session-rows";
 import { SessionHistoryTable } from "./_components/session-history-table";
 import { useState } from "react";
+import { AuthRequired } from "../_components/auth-required";
 
 type FilteredSummary = {
   totalSessions: number;
@@ -19,6 +20,8 @@ export default function SessionsPage(){
 
   const { user, authReady } = useAuthUser()
   const userId = user?.uid
+  if (!authReady) return null;
+  if (!user) return <AuthRequired message="Log in to view your session history." />;
 
   const sessionRowsQ = useUserSessionRows(userId)
   const reportsQ = useUserReports(userId)
@@ -35,10 +38,7 @@ export default function SessionsPage(){
 
 
 
-// some error handling
 
-if (!authReady) return <div className="p-6">Loading auth…</div>
-if (!user) return <div className="p-6 text-red-500">Please log in.</div>
 if (sessionRowsQ.isLoading || reportsQ.isLoading) return <div className="p-6">Loading…</div>
 if (sessionRowsQ.error || reportsQ.error) return <div className="p-6 text-red-500">Failed to load data.</div>
 
