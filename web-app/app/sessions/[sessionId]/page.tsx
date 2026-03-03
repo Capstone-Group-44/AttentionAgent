@@ -8,8 +8,8 @@ import { Clock, Hourglass, Timer, TrendingUp } from 'lucide-react'
 import { useRouter } from "next/navigation";
 import { useUserReports } from "@/lib/hooks/queries/reports";
 import { useUserSessionRows } from "@/lib/hooks/queries/session-rows";
-
-
+import { useSessionFocusSamples } from "@/lib/hooks/queries/focus-samples";
+import { FocusTrendChart } from "../_components/focus-trend-chart";
 export default function Page({
   params,
 }: {
@@ -21,6 +21,8 @@ export default function Page({
 
   const sessionRowsQ = useUserSessionRows(user?.uid)
   const reportsQ = useUserReports(user?.uid)
+  const focusSamplesQ = useSessionFocusSamples(sessionId);
+  const focusSamples = focusSamplesQ.data ?? [];
 
   const sessionRows = sessionRowsQ.data ?? []
   const reports = reportsQ.data ?? []
@@ -34,6 +36,8 @@ export default function Page({
       return <div className="p-6">Loading session…</div>
     }
   if (!user) return <div className="p-6 text-red-500">Please log in.</div>
+if (focusSamplesQ.error)
+  console.log("focusSamples error", focusSamplesQ.error);
 
   return (
     <div className="space-y-6">
@@ -64,7 +68,38 @@ export default function Page({
     value={report ? `${focusScoreToPercent(report.avgFocusScore)}/100` : "—"}
     icon={TrendingUp}
   />
+</div>
+
+  <div className="rounded-xl border p-4">
+  <div className="mb-2 text-xl font-medium">Focus Trend</div>
+  <div className="text-sm text-muted-foreground pb-4"> 
+    Focus score over time during this session.
   </div>
+
+  {focusSamplesQ.isLoading && (
+    <div className="text-sm text-muted-foreground">
+      Loading focus trend…
     </div>
+  )}
+  
+
+  {focusSamplesQ.error && (
+    <div className="text-sm text-red-500">
+      Failed to load focus samples.
+    </div>
+  )}
+
+  {!focusSamplesQ.isLoading &&
+    !focusSamplesQ.error &&
+    focusSamples.length >= 2 &&
+    session && (
+      <FocusTrendChart
+        samples={focusSamples}
+        sessionStart={session.startTime}
+      />
+    )}
+</div>
+
+  </div>
   )
 }
