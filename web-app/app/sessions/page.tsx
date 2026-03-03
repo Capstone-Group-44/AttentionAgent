@@ -20,8 +20,7 @@ export default function SessionsPage(){
 
   const { user, authReady } = useAuthUser()
   const userId = user?.uid
-  if (!authReady) return null;
-  if (!user) return <AuthRequired message="Log in to view your session history." />;
+  
 
   const sessionRowsQ = useUserSessionRows(userId)
   const reportsQ = useUserReports(userId)
@@ -38,7 +37,8 @@ export default function SessionsPage(){
 
 
 
-
+if (!authReady) return null;
+if (!user) return <AuthRequired message="Log in to view your session history." />;
 if (sessionRowsQ.isLoading || reportsQ.isLoading) return <div className="p-6">Loading…</div>
 if (sessionRowsQ.error || reportsQ.error) return <div className="p-6 text-red-500">Failed to load data.</div>
 

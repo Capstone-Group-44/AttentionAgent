@@ -19,9 +19,7 @@ export default function Page({
   const router = useRouter();
   const { sessionId } = use(params)
   const { user, authReady } = useAuthUser()
-  if (!authReady) return null;
-  if (!user) return <AuthRequired message="Log in to view your session history." />;
-
+  
   const sessionRowsQ = useUserSessionRows(user?.uid)
   const reportsQ = useUserReports(user?.uid)
   const focusSamplesQ = useSessionFocusSamples(sessionId);
@@ -33,12 +31,12 @@ export default function Page({
   const session = sessionRows.find(s => s.id === sessionId) ?? null
   const report = reports.find(r => r.sessionId === sessionId) ?? null
 
-
-  if (!authReady) return <div className="p-6">Loading auth…</div>
+  if (!authReady) return null;
+  if (!user) return <AuthRequired message="Log in to view your session history." />;
   if (sessionRowsQ.isLoading || reportsQ.isLoading) {
       return <div className="p-6">Loading session…</div>
     }
-  if (!user) return <div className="p-6 text-red-500">Please log in.</div>
+
 if (focusSamplesQ.error)
   console.log("focusSamples error", focusSamplesQ.error);
 
