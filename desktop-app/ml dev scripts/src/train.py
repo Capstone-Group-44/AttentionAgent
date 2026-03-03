@@ -1,4 +1,4 @@
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
 import xgboost as xgb
 import os
@@ -27,7 +27,7 @@ metrics_file = "results/loso_metrics.txt"
 fi_file = "results/feature_importances.csv"
 
 with open(metrics_file, "w") as f:
-    f.write("Test_Subject\tAccuracy\tF1\n")
+    f.write("Test_Subject\tAccuracy\tPrecision\tRecall\tF1\n")
 
 fi_all = []
 
@@ -77,13 +77,19 @@ for test_subject in subjects:
     )
 
     y_pred = (bst.predict(dtest) > 0.5).astype(int)
-    acc = accuracy_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
+    bst.save_model(f"results/xgb_model_subject_{test_subject}.json")
 
-    print(f"Accuracy: {acc:.4f}, F1: {f1:.4f}")
+    acc = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, pos_label=0, zero_division=0)
+    recall = recall_score(y_test, y_pred, pos_label=0, zero_division=0)
+    f1 = f1_score(y_test, y_pred, pos_label=0, zero_division=0)
+
+    print(
+        f"Accuracy: {acc:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}, F1: {f1:.4f}")
 
     with open(metrics_file, "a") as f:
-        f.write(f"{test_subject}\t{acc:.4f}\t{f1:.4f}\n")
+        f.write(
+            f"{test_subject}\t{acc:.4f}\t{precision:.4f}\t{recall:.4f}\t{f1:.4f}\n")
 
     fi = pd.DataFrame({
         "Feature": feature_cols,
@@ -114,4 +120,6 @@ metrics_df = pd.read_csv(metrics_file, sep="\t")
 print("\nPer Subject Results:")
 print(metrics_df)
 print("\nAverage Accuracy:", metrics_df["Accuracy"].mean())
+print("Average Precision:", metrics_df["Precision"].mean())
+print("Average Recall:", metrics_df["Recall"].mean())
 print("Average F1:", metrics_df["F1"].mean())
