@@ -1,0 +1,103 @@
+
+============================================================
+Loading data from XGBoost/data/raw/raw_coordinates.csv
+============================================================
+Loaded 52372 rows with columns: ['timestamp', 'screen_width', 'screen_height', 'left_gaze_x', 'left_gaze_y', 'right_gaze_x', 'right_gaze_y', 'face_x', 'face_y', 'face_z', 'focused?']
+
+============================================================
+Preprocessing data
+============================================================
+Dropped 3637 rows with missing values.
+Final feature columns: ['screen_width', 'screen_height', 'left_gaze_x', 'left_gaze_y', 'right_gaze_x', 'right_gaze_y', 'face_x', 'face_y', 'face_z']
+Dataset size after cleaning: 48735 rows
+Class balance:
+focused?
+1    26035
+0    22700
+Name: count, dtype: int64
+
+============================================================
+CROSS-VALIDATION CONFIGURATION
+============================================================
+Using StratifiedKFold with 5 folds.
+
+============================================================
+RUNNING CROSS-VALIDATION
+============================================================
+
+Cross-validation results (mean ± std across folds):
+
+Accuracy  : 0.9668 ± 0.0009
+Precision : 0.9616 ± 0.0025
+Recall    : 0.9768 ± 0.0021
+Accuracy  : 0.9668 ± 0.0009
+Precision : 0.9616 ± 0.0025
+Recall    : 0.9768 ± 0.0021
+F1        : 0.9691 ± 0.0008
+
+Overall Accuracy: 0.9667590027700831
+
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.97      0.96      0.96     22700
+           1       0.96      0.98      0.97     26035
+
+    accuracy                           0.97     48735
+   macro avg       0.97      0.97      0.97     48735
+weighted avg       0.97      0.97      0.97     48735
+
+
+Confusion Matrix:
+ [[21683  1017]
+ [  603 25432]]
+F1        : 0.9691 ± 0.0008
+
+Overall Accuracy: 0.9667590027700831
+
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.97      0.96      0.96     22700
+           1       0.96      0.98      0.97     26035
+
+    accuracy                           0.97     48735
+   macro avg       0.97      0.97      0.97     48735
+weighted avg       0.97      0.97      0.97     48735
+
+
+Confusion Matrix:
+ [[21683  1017]
+ [  603 25432]]
+
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.97      0.96      0.96     22700
+           1       0.96      0.98      0.97     26035
+
+    accuracy                           0.97     48735
+   macro avg       0.97      0.97      0.97     48735
+weighted avg       0.97      0.97      0.97     48735
+
+
+Confusion Matrix:
+ [[21683  1017]
+ [  603 25432]]
+    accuracy                           0.97     48735
+   macro avg       0.97      0.97      0.97     48735
+weighted avg       0.97      0.97      0.97     48735
+
+
+Confusion Matrix:
+ [[21683  1017]
+ [  603 25432]]
+Confusion Matrix:
+ [[21683  1017]
+ [  603 25432]]
+ [  603 25432]]
+
+============================================================
+CROSS-VALIDATION RESULTS SAVED
+============================================================
+Saved CV report at: docs/cv_results.json
