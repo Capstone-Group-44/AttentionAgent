@@ -5,6 +5,7 @@ import { AchievementsCard } from "./_components/achievements-card";
 
 import { useAuthUser } from "@/lib/hooks/use-auth-user"
 import { getFirstName } from "@/lib/utils"
+import LandingPage from "./_components/landing-page";
 
 // Homepage
 
@@ -12,6 +13,10 @@ export default function Home() {
   const { user, authReady } = useAuthUser()
 
   if (!authReady) return null
+
+  if (!user) {
+    return <LandingPage />;
+  }
 
   return (
            <div className="flex  justify-center flex-col gap-10">
