@@ -9,7 +9,7 @@ class FocusViewModel(QObject):
     timer_update = Signal(str, float)
     session_started = Signal()
     session_stopped = Signal()
-    break_started = Signal() # New signal when break starts
+    break_started = Signal(str) # New signal when break starts, passing the name of the break
     focus_resumed = Signal() # New signal when break ends and focus resumes
     error_occurred = Signal(str)
 
@@ -129,7 +129,7 @@ class FocusViewModel(QObject):
         self._mode = "idle"
         self.session_stopped.emit()
 
-    def start_short_break(self, duration_minutes):
+    def start_break(self, duration_minutes, break_name="Short Break"):
         if not self._is_running or self._mode == "break":
             return
             
@@ -145,7 +145,7 @@ class FocusViewModel(QObject):
         self._remaining_seconds = self._total_seconds
         
         self._emit_timer_update()
-        self.break_started.emit()
+        self.break_started.emit(break_name)
 
     def _on_timer_tick(self):
         if self._remaining_seconds > 0:
