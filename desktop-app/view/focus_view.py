@@ -18,12 +18,13 @@ class FocusView(QWidget):
         super().__init__()
         self.viewmodel = viewmodel
         self.auth_viewmodel = auth_viewmodel
+        self.setObjectName("FocusViewWidget")
         self.setStyleSheet("""
             QWidget {
-                background-color: #121212;
-            }
-            QLabel {
                 background-color: transparent;
+            }
+            QWidget#FocusViewWidget {
+                background-color: #0F1014;
             }
         """)
         self.init_ui()
@@ -44,9 +45,9 @@ class FocusView(QWidget):
         
         # Top Row (Title + Settings)
         top_row = QHBoxLayout()
-        title_label = QLabel("Focus Session")
-        title_label.setStyleSheet("color: white; font-size: 20px; font-weight: bold;")
-        top_row.addWidget(title_label)
+        self.welcome_label = QLabel("Welcome back!")
+        self.welcome_label.setStyleSheet("color: white; font-size: 26px; font-weight: 800; font-family: 'Inter', sans-serif;")
+        top_row.addWidget(self.welcome_label)
         
         top_row.addStretch()
         
@@ -75,6 +76,12 @@ class FocusView(QWidget):
         
         main_layout.addWidget(self.header)
         
+        # Set greeting text
+        if self.auth_viewmodel and self.auth_viewmodel.current_user:
+            user = self.auth_viewmodel.current_user
+            name = user.display_name or user.username
+            self.welcome_label.setText(f"Welcome back, {name}!")
+
         # --- Content Area (Stacked) ---
         self.content_container = QFrame()
         self.content_container.setStyleSheet(".QFrame { background-color: transparent; border: none; }")
@@ -96,16 +103,24 @@ class FocusView(QWidget):
 
     def create_setup_page(self):
         page = QWidget()
-        layout = QVBoxLayout()
+        layout = QHBoxLayout() # Horizontal main layout
+        layout.setContentsMargins(0, 0, 0, 0)
         
-        # Circular Placeholder
+        # --- Left Column: Timer ---
+        left_col = QVBoxLayout()
+        
         self.circular_progress_setup = CircularProgressWidget()
         self.circular_progress_setup.set_progress(0)
         self.circular_progress_setup.set_text("25:00")
         self.circular_progress_setup.set_subtext("Focus")
-        layout.addWidget(self.circular_progress_setup, alignment=Qt.AlignCenter)
+        left_col.addWidget(self.circular_progress_setup, alignment=Qt.AlignCenter)
         
-        layout.addSpacing(30)
+        layout.addLayout(left_col, stretch=1) # 50% width
+
+        # --- Right Column: Controls ---
+        right_col = QVBoxLayout()
+        right_col.setAlignment(Qt.AlignTop)
+        right_col.setSpacing(24)
         
         # Start Button
         self.start_btn = QPushButton("Start Focus Session")
@@ -116,8 +131,8 @@ class FocusView(QWidget):
                 color: white; 
                 font-size: 16px; 
                 font-weight: 700;
-                border-radius: 16px; 
-                padding: 16px;
+                border-radius: 12px; 
+                padding: 18px;
                 border: none;
             }
             QPushButton:hover {
@@ -127,41 +142,57 @@ class FocusView(QWidget):
                 background-color: #1D4ED8;
             }
         """)
-        layout.addWidget(self.start_btn)
+        right_col.addWidget(self.start_btn)
         
-        layout.addSpacing(20)
+        # Task Name Input
+        self.task_input = self.create_stacked_input_card("Task Name", "What are you working on?")
+        right_col.addWidget(self.task_input)
         
-        # Inputs
-        self.duration_input = self.create_input_card("Focus Duration (minutes)", "25", icon="🕒")
-        layout.addWidget(self.duration_input)
+        # Duration Inputs Row
+        durations_row = QHBoxLayout()
+        durations_row.setSpacing(16)
         
-        self.break_input = self.create_input_card("Break Duration (minutes)", "5", icon="⚡")
-        layout.addWidget(self.break_input)
+        self.duration_input = self.create_stacked_input_card("Focus (min)", "25")
+        durations_row.addWidget(self.duration_input)
         
-        self.goal_input = self.create_input_card("Daily Session Goal", "6", icon="🎯")
-        layout.addWidget(self.goal_input)
+        self.short_break_input = self.create_stacked_input_card("Short Break", "5")
+        durations_row.addWidget(self.short_break_input)
+        
+        self.long_break_input = self.create_stacked_input_card("Long Break", "15")
+        durations_row.addWidget(self.long_break_input)
+        
+        right_col.addLayout(durations_row)
+        
+        layout.addLayout(right_col, stretch=1) # 50% width
         
         page.setLayout(layout)
         return page
 
-    def create_input_card(self, label_text, default_value, icon=""):
+    def create_stacked_input_card(self, label_text, default_value_or_placeholder):
+        """Creates a card with a label stacked above an input field."""
         container = QFrame()
         container.setStyleSheet("""
             .QFrame {
                 background-color: #1A1B23; 
-                border-radius: 16px; 
+                border-radius: 12px; 
                 border: 1px solid #2A2B35;
             }
         """)
         layout = QVBoxLayout(container)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(8)
         
-        header = QLabel(f"{icon}  {label_text}")
-        header.setStyleSheet("color: #E0E1E6; font-weight: 600; font-size: 14px;")
+        header = QLabel(label_text)
+        header.setStyleSheet("color: #E0E1E6; font-weight: 600; font-size: 13px;")
         layout.addWidget(header)
         
-        inp = QLineEdit(default_value)
+        inp = QLineEdit()
+        # If it's a number, use as text. If not, treat as placeholder text.
+        if default_value_or_placeholder.isdigit():
+            inp.setText(default_value_or_placeholder)
+        else:
+            inp.setPlaceholderText(default_value_or_placeholder)
+            
         inp.setStyleSheet("""
             QLineEdit {
                 background-color: #0F1014; 
@@ -177,21 +208,24 @@ class FocusView(QWidget):
         """)
         layout.addWidget(inp)
         
-        # Store reference to input for later retrieval if needed
-        # A bit hacky but simple for now:
         container.input_field = inp 
-        
         return container
 
     def create_running_page(self):
         page = QWidget()
-        layout = QVBoxLayout()
+        layout = QHBoxLayout() # Horizontal main layout
+        layout.setContentsMargins(0, 0, 0, 0)
         
-        # Progress Circle
+        # --- Left Column: Timer ---
+        left_col = QVBoxLayout()
         self.circular_progress = CircularProgressWidget()
-        layout.addWidget(self.circular_progress, alignment=Qt.AlignCenter)
+        left_col.addWidget(self.circular_progress, alignment=Qt.AlignCenter)
+        layout.addLayout(left_col, stretch=1)
         
-        layout.addSpacing(40)
+        # --- Right Column: Controls and Stats ---
+        right_col = QVBoxLayout()
+        right_col.setAlignment(Qt.AlignTop)
+        right_col.setSpacing(24)
         
         # Stop Button
         self.stop_btn = QPushButton("Stop Session")
@@ -202,8 +236,8 @@ class FocusView(QWidget):
                 color: white; 
                 font-size: 16px; 
                 font-weight: 700;
-                border-radius: 16px; 
-                padding: 16px;
+                border-radius: 12px; 
+                padding: 18px;
                 border: none;
             }
             QPushButton:hover {
@@ -213,16 +247,14 @@ class FocusView(QWidget):
                 background-color: #B91C1C;
             }
         """)
-        layout.addWidget(self.stop_btn)
-        
-        layout.addSpacing(30)
+        right_col.addWidget(self.stop_btn)
         
         # Stats
         stats_container = QFrame()
         stats_container.setStyleSheet("""
             .QFrame {
                 background-color: #1A1B23; 
-                border-radius: 16px; 
+                border-radius: 12px; 
                 border: 1px solid #2A2B35;
             }
         """)
@@ -238,7 +270,9 @@ class FocusView(QWidget):
         self.progress_label = QLabel("0%")
         stats_layout.addWidget(self.create_stat_item("Progress", "0%"))
         
-        layout.addWidget(stats_container)
+        right_col.addWidget(stats_container)
+        
+        layout.addLayout(right_col, stretch=1)
         
         page.setLayout(layout)
         return page

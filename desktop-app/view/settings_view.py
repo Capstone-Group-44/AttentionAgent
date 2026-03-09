@@ -15,11 +15,11 @@ class SettingsView(QWidget):
         # Use a specific object name to prevent global QLabel cascading if we used type selectors
         self.setObjectName("SettingsViewWidget")
         self.setStyleSheet("""
-            QWidget#SettingsViewWidget {
-                background-color: #121212;
-            }
-            QLabel {
+            QWidget {
                 background-color: transparent;
+            }
+            QWidget#SettingsViewWidget {
+                background-color: #0F1014;
             }
         """)
         self.init_ui()
