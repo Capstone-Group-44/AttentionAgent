@@ -7,85 +7,12 @@ from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QIcon, QColor, QFont
 from view.components.circular_progress import CircularProgressWidget
 
-class ProfileDialog(QDialog):
-    def __init__(self, parent=None, auth_viewmodel=None):
-        super().__init__(parent)
-        self.auth_viewmodel = auth_viewmodel
-        self.setWindowTitle("Settings")
-        self.setFixedWidth(350)
-        self.setStyleSheet("background-color: #1E1E1E; border-radius: 10px;")
-        
-        layout = QVBoxLayout()
-        
-        # Header
-        header_layout = QHBoxLayout()
-        title = QLabel("Settings")
-        title.setStyleSheet("font-size: 18px; font-weight: bold; color: white;")
-        header_layout.addWidget(title)
-        
-        close_btn = QPushButton("×")
-        close_btn.setStyleSheet("border: none; font-size: 24px; color: #888;")
-        close_btn.clicked.connect(self.close)
-        header_layout.addWidget(close_btn)
-        layout.addLayout(header_layout)
-        
-        # Profile Section
-        layout.addSpacing(10)
-        profile_label = QLabel("Profile")
-        profile_label.setStyleSheet("font-weight: bold; color: white;")
-        layout.addWidget(profile_label)
-        
-        # User Info
-        if self.auth_viewmodel and self.auth_viewmodel.current_user:
-            user = self.auth_viewmodel.current_user
-            
-            # Name
-            name_label = QLabel(user.display_name or user.username)
-            name_label.setStyleSheet("color: white; font-size: 16px; font-weight: bold;")
-            layout.addWidget(name_label)
-            
-            # Email
-            email_label = QLabel(user.email)
-            email_label.setStyleSheet("color: #B0B0B0; font-size: 14px;")
-            layout.addWidget(email_label)
-            
-            layout.addSpacing(20)
-        else:
-            # Fallback (Shouldn't happen if logged in)
-            error_label = QLabel("Not logged in")
-            error_label.setStyleSheet("color: #F44336;")
-            layout.addWidget(error_label)
-        
-        # Logout Button (Real Action)
-        logout_btn = QPushButton("Logout")
-        logout_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f44336; 
-                color: white; 
-                border-radius: 5px; 
-                padding: 10px;
-                margin-top: 10px;
-            }
-            QPushButton:hover {
-                background-color: #d32f2f;
-            }
-        """)
-        if self.auth_viewmodel:
-             logout_btn.clicked.connect(self._handle_logout)
-        layout.addWidget(logout_btn)
-        
-        layout.addStretch()
-        self.setLayout(layout)
-
-    def _handle_logout(self):
-        if self.auth_viewmodel:
-            self.auth_viewmodel.logout()
-        self.parent().logout_requested.emit() # Forward signal
-        self.close()
 
 class FocusView(QWidget):
     # Signal to notify MainWindow to switch back to AuthView
     logout_requested = Signal()
+    # Signal to notify MainWindow to switch to SettingsView
+    settings_requested = Signal()
 
     def __init__(self, viewmodel, auth_viewmodel=None):
         super().__init__()
@@ -310,8 +237,7 @@ class FocusView(QWidget):
             pass
 
     def open_settings(self):
-        dialog = ProfileDialog(self, self.auth_viewmodel)
-        dialog.exec()
+        self.settings_requested.emit()
 
     def on_duration_changed(self, text):
         if not text:
