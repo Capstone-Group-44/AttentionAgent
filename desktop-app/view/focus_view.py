@@ -241,6 +241,39 @@ class FocusView(QWidget):
         right_col.setAlignment(Qt.AlignTop)
         right_col.setSpacing(24)
         
+        # Action Buttons Row
+        action_btns_layout = QHBoxLayout()
+        action_btns_layout.setSpacing(16)
+        
+        # Short Break Button
+        self.short_break_btn = QPushButton("Short Break")
+        self.short_break_btn.setCursor(Qt.PointingHandCursor)
+        self.short_break_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1A1B23; 
+                color: #A0A5B5; 
+                font-size: 16px; 
+                font-weight: 700;
+                border-radius: 12px; 
+                padding: 18px;
+                border: 1px solid #2A2B35;
+            }
+            QPushButton:hover {
+                background-color: #2A2B35;
+                color: white;
+            }
+            QPushButton:pressed {
+                background-color: #3B82F6;
+                color: white;
+            }
+            QPushButton:disabled {
+                background-color: #0F1014;
+                color: #4A4D5E;
+                border: 1px solid #1A1B23;
+            }
+        """)
+        action_btns_layout.addWidget(self.short_break_btn, stretch=1)
+        
         # Stop Button
         self.stop_btn = QPushButton("Stop Session")
         self.stop_btn.setCursor(Qt.PointingHandCursor)
@@ -261,7 +294,9 @@ class FocusView(QWidget):
                 background-color: #B91C1C;
             }
         """)
-        right_col.addWidget(self.stop_btn)
+        action_btns_layout.addWidget(self.stop_btn, stretch=1)
+        
+        right_col.addLayout(action_btns_layout)
         
         # Stats
         stats_container = QFrame()
@@ -315,6 +350,7 @@ class FocusView(QWidget):
     def setup_connections(self):
         self.start_btn.clicked.connect(self.on_start_clicked)
         self.stop_btn.clicked.connect(self.viewmodel.stop_session)
+        self.short_break_btn.clicked.connect(self.on_short_break_clicked)
         self.settings_btn.clicked.connect(self.open_settings)
         
         # Live timer update
@@ -323,6 +359,8 @@ class FocusView(QWidget):
         self.viewmodel.timer_update.connect(self.update_timer_display)
         self.viewmodel.session_started.connect(self.on_session_started)
         self.viewmodel.session_stopped.connect(self.on_session_stopped)
+        self.viewmodel.break_started.connect(self.on_break_started)
+        self.viewmodel.focus_resumed.connect(self.on_focus_resumed)
         
     def on_start_clicked(self):
         try:
@@ -330,6 +368,13 @@ class FocusView(QWidget):
             self.viewmodel.start_session(minutes)
         except ValueError:
             # Handle invalid input
+            pass
+
+    def on_short_break_clicked(self):
+        try:
+            minutes = int(self.short_break_input.input_field.text())
+            self.viewmodel.start_short_break(minutes)
+        except ValueError:
             pass
 
     def open_settings(self):
@@ -353,8 +398,20 @@ class FocusView(QWidget):
     def on_session_started(self):
         self.stack.setCurrentWidget(self.running_page)
         self.status_subtitle.setText("Focus Mode Active")
+        self.short_break_btn.setEnabled(True)
+        self.circular_progress.set_subtext("Focus")
 
     def on_session_stopped(self):
         self.stack.setCurrentWidget(self.setup_page)
         self.status_subtitle.setText("Ready to focus")
+
+    def on_break_started(self):
+        self.status_subtitle.setText("Short Break Active")
+        self.short_break_btn.setEnabled(False)
+        self.circular_progress.set_subtext("Break")
+        
+    def on_focus_resumed(self):
+        self.status_subtitle.setText("Focus Mode Active")
+        self.short_break_btn.setEnabled(True)
+        self.circular_progress.set_subtext("Focus")
 
