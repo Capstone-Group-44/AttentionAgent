@@ -107,7 +107,14 @@ class FocusView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         
         # --- Left Column: Timer ---
-        left_col = QVBoxLayout()
+        left_panel_setup = QFrame()
+        left_panel_setup.setStyleSheet("""
+            .QFrame {
+                background-color: #050608;
+                border-radius: 24px;
+            }
+        """)
+        left_col = QVBoxLayout(left_panel_setup)
         
         self.circular_progress_setup = CircularProgressWidget()
         self.circular_progress_setup.set_progress(0)
@@ -115,7 +122,7 @@ class FocusView(QWidget):
         self.circular_progress_setup.set_subtext("Focus")
         left_col.addWidget(self.circular_progress_setup, alignment=Qt.AlignCenter)
         
-        layout.addLayout(left_col, stretch=1) # 50% width
+        layout.addWidget(left_panel_setup, stretch=1) # 50% width
 
         # --- Right Column: Controls ---
         right_col = QVBoxLayout()
@@ -217,10 +224,17 @@ class FocusView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         
         # --- Left Column: Timer ---
-        left_col = QVBoxLayout()
+        left_panel_running = QFrame()
+        left_panel_running.setStyleSheet("""
+            .QFrame {
+                background-color: #050608;
+                border-radius: 24px;
+            }
+        """)
+        left_col = QVBoxLayout(left_panel_running)
         self.circular_progress = CircularProgressWidget()
         left_col.addWidget(self.circular_progress, alignment=Qt.AlignCenter)
-        layout.addLayout(left_col, stretch=1)
+        layout.addWidget(left_panel_running, stretch=1)
         
         # --- Right Column: Controls and Stats ---
         right_col = QVBoxLayout()
