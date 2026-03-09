@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
         self.auth_viewmodel = AuthViewModel()
         self.auth_view = AuthView(self.auth_viewmodel)
         
-        self.focus_viewmodel = FocusViewModel()
+        self.focus_viewmodel = FocusViewModel(self.auth_viewmodel)
         self.focus_view = FocusView(self.focus_viewmodel, self.auth_viewmodel)
 
         # Navigation setup

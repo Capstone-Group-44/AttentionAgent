@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
-    QLineEdit, QStackedWidget, QFrame, QDialog, QScrollArea,
+    QLineEdit, QStackedWidget, QFrame, QDialog, QScrollArea, QMessageBox,
     QGraphicsDropShadowEffect, QSpacerItem, QSizePolicy
 )
 from PySide6.QtCore import Qt, QSize, Signal
@@ -300,6 +300,7 @@ class FocusView(QWidget):
         self.viewmodel.timer_update.connect(self.update_timer_display)
         self.viewmodel.session_started.connect(self.on_session_started)
         self.viewmodel.session_stopped.connect(self.on_session_stopped)
+        self.viewmodel.error_occurred.connect(self.on_error)
         
     def on_start_clicked(self):
         try:
@@ -335,4 +336,7 @@ class FocusView(QWidget):
     def on_session_stopped(self):
         self.stack.setCurrentWidget(self.setup_page)
         self.status_subtitle.setText("Ready to focus")
+
+    def on_error(self, message):
+        QMessageBox.critical(self, "Focus Session Error", message)
 

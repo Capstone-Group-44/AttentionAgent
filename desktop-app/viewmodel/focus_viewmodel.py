@@ -1,8 +1,11 @@
-import subprocess
-import sys
-import os
-import signal
+import threading
+import time
 from PySide6.QtCore import QObject, Signal, QTimer
+from PySide6.QtGui import QGuiApplication
+
+from db.session_repository import SessionRepository
+from db.user_repository import UserRepository
+from services.focus_tracking_worker import FocusTrackingWorker
 
 class FocusViewModel(QObject):
     # Signal emited with (time_string, progress_value_0_to_100)
@@ -11,10 +14,17 @@ class FocusViewModel(QObject):
     session_stopped = Signal()
     error_occurred = Signal(str)
 
-    def __init__(self):
+    def __init__(self, auth_viewmodel=None):
         super().__init__()
-        self._process = None
+        self._auth_viewmodel = auth_viewmodel
         self._is_running = False
+        self._stop_event = None
+        self._worker_thread = None
+        self._session_id = None
+        self._session_start_ts = None
+
+        self._user_repo = UserRepository()
+        self._session_repo = SessionRepository()
         
         self.timer = QTimer()
         self.timer.timeout.connect(self._on_timer_tick)
@@ -31,52 +41,44 @@ class FocusViewModel(QObject):
             return
 
         try:
-            # 1. Start the ML Process
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            script_path = os.path.join(base_dir, "app", "main_ML.py")
-            working_dir = os.path.join(base_dir, "app")
-            
-            if not os.path.exists(script_path):
-                self.error_occurred.emit(f"Script not found at: {script_path}")
+            user = self._auth_viewmodel.current_user
+
+            minutes = int(duration_minutes)
+            if minutes <= 0:
+                self.error_occurred.emit("Duration must be greater than 0.")
                 return
 
-            creationflags = 0
-            if os.name == "nt":
-                creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
-            
-            # Ensure PYTHONPATH includes the working directory so imports work
-            env = os.environ.copy()
-            env["PYTHONPATH"] = working_dir + os.pathsep + env.get("PYTHONPATH", "")
-
-            self._process = subprocess.Popen(
-                [sys.executable, "main_ML.py"],
-                cwd=working_dir,
-                env=env, # Pass env with PYTHONPATH
-                creationflags=creationflags,
-                stderr=subprocess.PIPE, # Capture errors
-                text=True
+            self._user_repo.create_user_with_id(
+                user_id=user.uid,
+                username=user.username,
+                display_name=user.display_name or user.username,
+                email=user.email,
+                created_at=user.created_at,
             )
-            
-            # Check if it failed immediately
-            try:
-                # Wait a brief moment to see if it crashes on startup
-                outs, errs = self._process.communicate(timeout=0.1)
-                if self._process.returncode is not None and self._process.returncode != 0:
-                     self.error_occurred.emit(f"ML Process failed: {errs}")
-                     self._process = None
-                     return
-            except subprocess.TimeoutExpired:
-                # Process is running fine
-                pass
-            
-            # 2. Start the Timer
-            self._total_seconds = int(duration_minutes) * 60
+
+            width, height = self._get_screen_size()
+            self._session_id = self._session_repo.start_session(
+                user_id=user.uid,
+                screen_width=width,
+                screen_height=height,
+            )
+            self._session_start_ts = time.time()
+
+            self._stop_event = threading.Event()
+            worker = FocusTrackingWorker(
+                user_id=user.uid,
+                session_id=self._session_id,
+                stop_event=self._stop_event,
+                error_callback=self.error_occurred.emit,
+            )
+            self._worker_thread = threading.Thread(target=worker.run, daemon=True)
+            self._worker_thread.start()
+
+            self._total_seconds = minutes * 60
             self._remaining_seconds = self._total_seconds
-            self.timer.start(1000) # 1 second interval
+            self.timer.start(1000)
             
             self._is_running = True
-            
-            # Emit initial state
             self._emit_timer_update()
             self.session_started.emit()
             
@@ -85,30 +87,32 @@ class FocusViewModel(QObject):
             self.stop_session()
 
     def stop_session(self):
-        # Stop Timer
         self.timer.stop()
-        
-        # Stop Process
-        if self._process:
+
+        if self._stop_event is not None:
+            self._stop_event.set()
+
+        if self._worker_thread and self._worker_thread.is_alive():
             try:
-                if os.name == "nt":
-                    self._process.send_signal(signal.CTRL_BREAK_EVENT)
-                else:
-                    self._process.send_signal(signal.SIGINT)
-                
-                try:
-                    self._process.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    self._process.terminate()
-                    self._process.wait(timeout=2)
+                self._worker_thread.join(timeout=3)
             except Exception:
-                try:
-                    self._process.kill()
-                except:
-                    pass
-            self._process = None
+                pass
+
+        duration_seconds = 0.0
+        if self._session_start_ts is not None:
+            duration_seconds = max(0.0, time.time() - self._session_start_ts)
+
+        if self._session_id is not None:
+            try:
+                self._session_repo.end_session(self._session_id, duration_seconds)
+            except Exception as exc:
+                self.error_occurred.emit(f"Failed to end session in DB: {exc}")
 
         self._is_running = False
+        self._session_id = None
+        self._session_start_ts = None
+        self._stop_event = None
+        self._worker_thread = None
         self.session_stopped.emit()
 
     def _on_timer_tick(self):
@@ -129,3 +133,10 @@ class FocusViewModel(QObject):
             progress = 0
             
         self.timer_update.emit(time_str, progress)
+
+    def _get_screen_size(self):
+        screen = QGuiApplication.primaryScreen()
+        if screen is None:
+            return 0, 0
+        size = screen.size()
+        return int(size.width()), int(size.height())
