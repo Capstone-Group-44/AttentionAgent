@@ -18,7 +18,14 @@ class FocusView(QWidget):
         super().__init__()
         self.viewmodel = viewmodel
         self.auth_viewmodel = auth_viewmodel
-        self.setStyleSheet("background-color: #121212;")
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #121212;
+            }
+            QLabel {
+                background-color: transparent;
+            }
+        """)
         self.init_ui()
         self.setup_connections()
 
@@ -27,9 +34,9 @@ class FocusView(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
-        # --- Blue Header ---
+        # --- Header ---
         self.header = QFrame()
-        self.header.setStyleSheet("background-color: #1E1E1E; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;")
+        self.header.setStyleSheet(".QFrame { background-color: transparent; border: none; }")
         self.header.setFixedHeight(120)
         
         header_layout = QVBoxLayout(self.header)
@@ -44,8 +51,20 @@ class FocusView(QWidget):
         top_row.addStretch()
         
         self.settings_btn = QPushButton("⚙")
-        self.settings_btn.setFixedSize(30, 30)
-        self.settings_btn.setStyleSheet("background-color: rgba(255,255,255,0.3); border-radius: 15px; color: white;")
+        self.settings_btn.setFixedSize(36, 36)
+        self.settings_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 255, 255, 0.05); 
+                color: #A0A5B5;
+                font-size: 18px;
+                border-radius: 18px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
+            }
+        """)
         top_row.addWidget(self.settings_btn)
         
         header_layout.addLayout(top_row)
@@ -58,17 +77,10 @@ class FocusView(QWidget):
         
         # --- Content Area (Stacked) ---
         self.content_container = QFrame()
-        self.content_container.setStyleSheet(".QFrame { background-color: #1E1E1E; border-radius: 20px; margin: 10px; }")
-        
-        # Add shadow
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(20)
-        shadow.setColor(QColor(0, 0, 0, 20))
-        shadow.setOffset(0, 4)
-        self.content_container.setGraphicsEffect(shadow)
+        self.content_container.setStyleSheet(".QFrame { background-color: transparent; border: none; }")
         
         container_layout = QVBoxLayout(self.content_container)
-        container_layout.setContentsMargins(20, 40, 20, 40)
+        container_layout.setContentsMargins(20, 20, 20, 40)
         
         self.stack = QStackedWidget()
         self.setup_page = self.create_setup_page()
@@ -100,15 +112,19 @@ class FocusView(QWidget):
         self.start_btn.setCursor(Qt.PointingHandCursor)
         self.start_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4285F4; 
+                background-color: #3B82F6; 
                 color: white; 
                 font-size: 16px; 
-                border-radius: 10px; 
-                padding: 12px;
-                font-weight: bold;
+                font-weight: 700;
+                border-radius: 16px; 
+                padding: 16px;
+                border: none;
             }
             QPushButton:hover {
-                background-color: #3367D6;
+                background-color: #2563EB;
+            }
+            QPushButton:pressed {
+                background-color: #1D4ED8;
             }
         """)
         layout.addWidget(self.start_btn)
@@ -130,15 +146,35 @@ class FocusView(QWidget):
 
     def create_input_card(self, label_text, default_value, icon=""):
         container = QFrame()
-        container.setStyleSheet("background-color: #252525; border-radius: 10px;")
+        container.setStyleSheet("""
+            .QFrame {
+                background-color: #1A1B23; 
+                border-radius: 16px; 
+                border: 1px solid #2A2B35;
+            }
+        """)
         layout = QVBoxLayout(container)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(12)
         
         header = QLabel(f"{icon}  {label_text}")
-        header.setStyleSheet("color: #B0B0B0; font-weight: bold; font-size: 13px;")
+        header.setStyleSheet("color: #E0E1E6; font-weight: 600; font-size: 14px;")
         layout.addWidget(header)
         
         inp = QLineEdit(default_value)
-        inp.setStyleSheet("background-color: #2C2C2C; color: white; border: 1px solid #333; border-radius: 5px; padding: 8px;")
+        inp.setStyleSheet("""
+            QLineEdit {
+                background-color: #0F1014; 
+                color: white; 
+                border: 1px solid #2A2B35; 
+                border-radius: 8px; 
+                padding: 12px;
+                font-size: 14px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #3B82F6;
+            }
+        """)
         layout.addWidget(inp)
         
         # Store reference to input for later retrieval if needed
@@ -162,15 +198,19 @@ class FocusView(QWidget):
         self.stop_btn.setCursor(Qt.PointingHandCursor)
         self.stop_btn.setStyleSheet("""
             QPushButton {
-                background-color: #F44336; 
+                background-color: #EF4444; 
                 color: white; 
                 font-size: 16px; 
-                border-radius: 10px; 
-                padding: 12px;
-                font-weight: bold;
+                font-weight: 700;
+                border-radius: 16px; 
+                padding: 16px;
+                border: none;
             }
             QPushButton:hover {
-                background-color: #D32F2F;
+                background-color: #DC2626;
+            }
+            QPushButton:pressed {
+                background-color: #B91C1C;
             }
         """)
         layout.addWidget(self.stop_btn)
@@ -179,8 +219,15 @@ class FocusView(QWidget):
         
         # Stats
         stats_container = QFrame()
-        stats_container.setStyleSheet("background-color: #252525; border-radius: 10px; padding: 15px;")
+        stats_container.setStyleSheet("""
+            .QFrame {
+                background-color: #1A1B23; 
+                border-radius: 16px; 
+                border: 1px solid #2A2B35;
+            }
+        """)
         stats_layout = QHBoxLayout(stats_container)
+        stats_layout.setContentsMargins(20, 20, 20, 20)
         
         self.completed_label = QLabel("0 sessions")
         self.completed_label.setAlignment(Qt.AlignCenter)
@@ -213,7 +260,8 @@ class FocusView(QWidget):
         line = QFrame()
         line.setFrameShape(QFrame.VLine)
         line.setFrameShadow(QFrame.Sunken)
-        line.setStyleSheet("color: #DADCE0;")
+        line.setStyleSheet("border: none; background-color: #2A2B35;")
+        line.setMaximumWidth(1)
         return line
 
     def setup_connections(self):

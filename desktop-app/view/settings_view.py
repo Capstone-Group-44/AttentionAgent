@@ -16,7 +16,7 @@ class SettingsView(QWidget):
         self.setObjectName("SettingsViewWidget")
         self.setStyleSheet("""
             QWidget#SettingsViewWidget {
-                background-color: #0F1014;
+                background-color: #121212;
             }
             QLabel {
                 background-color: transparent;
@@ -31,7 +31,7 @@ class SettingsView(QWidget):
         
         # --- Header ---
         self.header = QFrame()
-        self.header.setStyleSheet("background-color: transparent;")
+        self.header.setStyleSheet(".QFrame { background-color: transparent; }")
         header_layout = QHBoxLayout(self.header)
         header_layout.setContentsMargins(40, 40, 40, 20)
         
@@ -76,7 +76,7 @@ class SettingsView(QWidget):
         icon_circle = QFrame()
         icon_circle.setFixedSize(56, 56)
         icon_circle.setStyleSheet("""
-            QFrame {
+            .QFrame {
                 background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #3B82F6, stop:1 #2563EB);
                 border-radius: 28px;
             }
@@ -102,7 +102,7 @@ class SettingsView(QWidget):
         # User Info Card
         user_card = QFrame()
         user_card.setStyleSheet("""
-            QFrame {
+            .QFrame {
                 background-color: #1A1B23; 
                 border-radius: 16px; 
                 border: 1px solid #2A2B35;
@@ -172,7 +172,7 @@ class SettingsView(QWidget):
         # Notifications Card
         notifications_card = QFrame()
         notifications_card.setStyleSheet("""
-            QFrame {
+            .QFrame {
                 background-color: #1A1B23; 
                 border-radius: 16px; 
                 border: 1px solid #2A2B35;
