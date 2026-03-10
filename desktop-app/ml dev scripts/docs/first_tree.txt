@@ -1,0 +1,58 @@
+0:[num__face_z<0.0565330647] yes=1,no=2,missing=2,gain=25958.7188,cover=9692.89648
+        1:[num__right_gaze_y<1.1044805] yes=3,no=4,missing=4,gain=1168.84082,cover=5584.47559
+                3:[num__face_z<-0.674252987] yes=7,no=8,missing=8,gain=895.829102,cover=5476.48389
+                        7:[num__right_gaze_y<-1.21778715] yes=15,no=16,missing=16,gain=128.969727,cover=3304.95068
+                                15:leaf=-0.0574655235,cover=14.1832695
+                                16:leaf=0.0904073343,cover=3290.76733
+                        8:[num__left_gaze_x<-0.0332404561] yes=17,no=18,missing=18,gain=1526.06921,cover=2171.5332
+                                17:leaf=0.0838754028,cover=1263.80396
+                                18:leaf=-0.00109045766,cover=907.729248
+                4:[num__left_gaze_y<1.50871193] yes=9,no=10,missing=10,gain=19.0711975,cover=107.991913
+                        9:[num__right_gaze_x<1.93129098] yes=19,no=20,missing=20,gain=17.9743919,cover=31.6013203
+                                19:leaf=-0.0144083379,cover=14.6809282
+                                20:leaf=-0.0901951939,cover=16.9203911
+0:[num__face_z<0.0565330647] yes=1,no=2,missing=2,gain=25958.7188,cover=9692.89648
+        1:[num__right_gaze_y<1.1044805] yes=3,no=4,missing=4,gain=1168.84082,cover=5584.47559
+                3:[num__face_z<-0.674252987] yes=7,no=8,missing=8,gain=895.829102,cover=5476.48389
+                        7:[num__right_gaze_y<-1.21778715] yes=15,no=16,missing=16,gain=128.969727,cover=3304.95068
+                                15:leaf=-0.0574655235,cover=14.1832695
+                                16:leaf=0.0904073343,cover=3290.76733
+                        8:[num__left_gaze_x<-0.0332404561] yes=17,no=18,missing=18,gain=1526.06921,cover=2171.5332
+                                17:leaf=0.0838754028,cover=1263.80396
+                                18:leaf=-0.00109045766,cover=907.729248
+0:[num__face_z<0.0565330647] yes=1,no=2,missing=2,gain=25958.7188,cover=9692.89648
+        1:[num__right_gaze_y<1.1044805] yes=3,no=4,missing=4,gain=1168.84082,cover=5584.47559
+                3:[num__face_z<-0.674252987] yes=7,no=8,missing=8,gain=895.829102,cover=5476.48389
+                        7:[num__right_gaze_y<-1.21778715] yes=15,no=16,missing=16,gain=128.969727,cover=3304.95068
+                                15:leaf=-0.0574655235,cover=14.1832695
+0:[num__face_z<0.0565330647] yes=1,no=2,missing=2,gain=25958.7188,cover=9692.89648
+        1:[num__right_gaze_y<1.1044805] yes=3,no=4,missing=4,gain=1168.84082,cover=5584.47559
+                3:[num__face_z<-0.674252987] yes=7,no=8,missing=8,gain=895.829102,cover=5476.48389
+0:[num__face_z<0.0565330647] yes=1,no=2,missing=2,gain=25958.7188,cover=9692.89648
+0:[num__face_z<0.0565330647] yes=1,no=2,missing=2,gain=25958.7188,cover=9692.89648
+        1:[num__right_gaze_y<1.1044805] yes=3,no=4,missing=4,gain=1168.84082,cover=5584.47559
+                3:[num__face_z<-0.674252987] yes=7,no=8,missing=8,gain=895.829102,cover=5476.48389
+                        7:[num__right_gaze_y<-1.21778715] yes=15,no=16,missing=16,gain=128.969727,cover=3304.95068
+                                15:leaf=-0.0574655235,cover=14.1832695
+                                16:leaf=0.0904073343,cover=3290.76733
+                        8:[num__left_gaze_x<-0.0332404561] yes=17,no=18,missing=18,gain=1526.06921,cover=2171.5332
+                                17:leaf=0.0838754028,cover=1263.80396
+                                18:leaf=-0.00109045766,cover=907.729248
+                4:[num__left_gaze_y<1.50871193] yes=9,no=10,missing=10,gain=19.0711975,cover=107.991913
+                        9:[num__right_gaze_x<1.93129098] yes=19,no=20,missing=20,gain=17.9743919,cover=31.6013203
+                                19:leaf=-0.0144083379,cover=14.6809282
+                                20:leaf=-0.0901951939,cover=16.9203911
+                        10:leaf=-0.105958752,cover=76.3905945
+        2:[num__face_z<0.773924053] yes=5,no=6,missing=6,gain=410.837891,cover=4108.42041
+                5:[num__right_gaze_y<-1.16940069] yes=11,no=12,missing=12,gain=479.52063,cover=1034.6322
+                        11:[num__face_x<-0.0459428839] yes=21,no=22,missing=22,gain=318.857056,cover=103.015327
+                                21:leaf=0.0890079215,cover=73.902298
+                                22:leaf=-0.103781044,cover=29.1130276
+                        12:[num__face_z<0.368584037] yes=23,no=24,missing=24,gain=145.799561,cover=931.616882
+                                23:leaf=-0.0516543984,cover=318.750336
+                                24:leaf=-0.0936500877,cover=612.866516
+                6:[num__left_gaze_y<-0.824436843] yes=13,no=14,missing=14,gain=26.5615234,cover=3073.78833
+                        13:[num__left_gaze_y<-0.934892237] yes=25,no=26,missing=26,gain=54.2857666,cover=234.894852
+                                25:leaf=-0.0999744758,cover=183.138351
+                                26:leaf=-0.0408640243,cover=51.7564926
+                        14:leaf=-0.106022753,cover=2838.89331
