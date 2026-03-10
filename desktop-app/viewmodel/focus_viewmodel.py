@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 from PySide6.QtCore import QObject, Signal, QTimer
@@ -6,6 +7,7 @@ from PySide6.QtGui import QGuiApplication
 from db.session_repository import SessionRepository
 from db.user_repository import UserRepository
 from services.focus_tracking_worker import FocusTrackingWorker
+from scripts import build_reports
 
 
 class FocusViewModel(QObject):
@@ -107,16 +109,46 @@ class FocusViewModel(QObject):
             duration_seconds = max(0.0, time.time() - self._session_start_ts)
 
         if self._session_id is not None:
+            session_id = self._session_id
             try:
                 self._session_repo.end_session(
                     self._session_id, duration_seconds)
             except Exception as exc:
                 self.error_occurred.emit(f"Failed to end session in DB: {exc}")
 
+            self._sync_report_to_firestore_async(session_id)
+
         self._stop_event = None
         self._worker_thread = None
         self._session_id = None
         self._session_start_ts = None
+
+    def _sync_report_to_firestore_async(self, session_id: str):
+        def _run():
+            try:
+                db_path = self._session_repo.db.db_path
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                key_path = os.getenv(
+                    "FIREBASE_KEY_PATH",
+                    os.path.join(
+                        base_dir,
+                        "keys",
+                        "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json",
+                    ),
+                )
+                project_id = os.getenv("FIREBASE_PROJECT_ID", "attention-agent-30bd0")
+                build_reports.sync_report_for_session(
+                    db_path=db_path,
+                    key_path=key_path,
+                    project_id=project_id,
+                    session_id=session_id,
+                )
+            except FileNotFoundError:
+                return
+            except Exception as exc:
+                self.error_occurred.emit(f"Failed to sync report to Firestore: {exc}")
+
+        threading.Thread(target=_run, daemon=True).start()
 
     def start_session(self, duration_minutes):
         try:
