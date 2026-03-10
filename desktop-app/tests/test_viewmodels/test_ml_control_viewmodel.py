@@ -72,8 +72,5 @@ def test_stop_ml_script(ml_viewmodel):
     assert ml_viewmodel.is_running is False
     assert ml_viewmodel._process is None
     
-    # Check if terminate or send_signal was called on the mock process
-    if os.name == 'nt':
-        mock_process.send_signal.assert_called()
-    else:
-        mock_process.terminate.assert_called()
+    # Check if send_signal was called on the mock process
+    mock_process.send_signal.assert_called()

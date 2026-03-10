@@ -7,11 +7,15 @@ from db.session_repository import SessionRepository
 from db.user_repository import UserRepository
 from services.focus_tracking_worker import FocusTrackingWorker
 
+
 class FocusViewModel(QObject):
     # Signal emited with (time_string, progress_value_0_to_100)
     timer_update = Signal(str, float)
     session_started = Signal()
     session_stopped = Signal()
+    # New signal when break starts, passing the name of the break
+    break_started = Signal(str)
+    focus_resumed = Signal()  # New signal when break ends and focus resumes
     error_occurred = Signal(str)
 
     def __init__(self, auth_viewmodel=None):
@@ -25,10 +29,15 @@ class FocusViewModel(QObject):
 
         self._user_repo = UserRepository()
         self._session_repo = SessionRepository()
-        
+
+        # New State Management Variables
+        self._mode = "idle"  # "idle", "focus", "break"
+        self._focus_total_seconds = 0
+        self._focus_remaining_seconds = 0
+
         self.timer = QTimer()
         self.timer.timeout.connect(self._on_timer_tick)
-        
+
         self._total_seconds = 0
         self._remaining_seconds = 0
 
@@ -36,10 +45,7 @@ class FocusViewModel(QObject):
     def is_running(self):
         return self._is_running
 
-    def start_session(self, duration_minutes):
-        if self._is_running:
-            return
-
+    def _start_ml_process(self):
         try:
             user = self._auth_viewmodel.current_user
 
@@ -71,28 +77,24 @@ class FocusViewModel(QObject):
                 stop_event=self._stop_event,
                 error_callback=self.error_occurred.emit,
             )
-            self._worker_thread = threading.Thread(target=worker.run, daemon=True)
+            self._worker_thread = threading.Thread(
+                target=worker.run, daemon=True)
             self._worker_thread.start()
 
             self._total_seconds = minutes * 60
             self._remaining_seconds = self._total_seconds
             self.timer.start(1000)
-            
+
             self._is_running = True
             self._emit_timer_update()
             self.session_started.emit()
-            
+
         except Exception as e:
             self.error_occurred.emit(str(e))
-            self.stop_session()
+            return False
 
-    def stop_session(self):
-        self.timer.stop()
-
-        if self._stop_event is not None:
-            self._stop_event.set()
-
-        if self._worker_thread and self._worker_thread.is_alive():
+    def _stop_ml_process(self):
+        if self._process:
             try:
                 self._worker_thread.join(timeout=3)
             except Exception:
@@ -104,34 +106,100 @@ class FocusViewModel(QObject):
 
         if self._session_id is not None:
             try:
-                self._session_repo.end_session(self._session_id, duration_seconds)
+                self._session_repo.end_session(
+                    self._session_id, duration_seconds)
             except Exception as exc:
                 self.error_occurred.emit(f"Failed to end session in DB: {exc}")
 
+    def start_session(self, duration_minutes):
+        if self._is_running and self._mode == "focus":
+            return
+
+        # Start the ML Process
+        if not self._start_ml_process():
+            self.stop_session()
+            return
+
+        # 2. Start the Timer
+        self._total_seconds = int(duration_minutes) * 60
+        self._remaining_seconds = self._total_seconds
+
+        # Save focus state
+        self._focus_total_seconds = self._total_seconds
+        self._focus_remaining_seconds = self._remaining_seconds
+
+        self._mode = "focus"
+        self._is_running = True
+        self.timer.start(1000)  # 1 second interval
+
+        # Emit initial state
+        self._emit_timer_update()
+        self.session_started.emit()
+
+    def stop_session(self):
+        # Stop Timer
+        self.timer.stop()
+
+        # Stop Process
+        self._stop_ml_process()
+
         self._is_running = False
-        self._session_id = None
-        self._session_start_ts = None
-        self._stop_event = None
-        self._worker_thread = None
+        self._mode = "idle"
         self.session_stopped.emit()
+
+    def start_break(self, duration_minutes, break_name="Short Break"):
+        if not self._is_running or self._mode == "break":
+            return
+
+        # 1. Pause focus timer data
+        self._focus_remaining_seconds = self._remaining_seconds
+
+        # 2. Stop ML process
+        self._stop_ml_process()
+
+        # 3. Start Break Timer
+        self._mode = "break"
+        self._total_seconds = int(duration_minutes) * 60
+        self._remaining_seconds = self._total_seconds
+
+        self._emit_timer_update()
+        self.break_started.emit(break_name)
 
     def _on_timer_tick(self):
         if self._remaining_seconds > 0:
             self._remaining_seconds -= 1
             self._emit_timer_update()
         else:
-            self.stop_session()
+            if self._mode == "break":
+                # Break finished. Resume Focus mode.
+                self._mode = "focus"
+
+                # Restore original focus state
+                self._total_seconds = self._focus_total_seconds
+                self._remaining_seconds = self._focus_remaining_seconds
+
+                # Restart ML process
+                if not self._start_ml_process():
+                    self.stop_session()
+                    return
+
+                self._emit_timer_update()
+                self.focus_resumed.emit()
+            else:
+                # Main focus session finished
+                self.stop_session()
 
     def _emit_timer_update(self):
         mins = self._remaining_seconds // 60
         secs = self._remaining_seconds % 60
         time_str = f"{mins:02d}:{secs:02d}"
-        
+
         if self._total_seconds > 0:
-            progress = ((self._total_seconds - self._remaining_seconds) / self._total_seconds) * 100
+            progress = (
+                (self._total_seconds - self._remaining_seconds) / self._total_seconds) * 100
         else:
             progress = 0
-            
+
         self.timer_update.emit(time_str, progress)
 
     def _get_screen_size(self):
