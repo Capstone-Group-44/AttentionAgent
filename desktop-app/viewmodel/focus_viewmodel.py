@@ -45,14 +45,13 @@ class FocusViewModel(QObject):
     def is_running(self):
         return self._is_running
 
-    def _start_ml_process(self):
+    def _start_ml_process(self) -> bool:
         try:
-            user = self._auth_viewmodel.current_user
+            if self._auth_viewmodel is None or getattr(self._auth_viewmodel, "current_user", None) is None:
+                self.error_occurred.emit("You must be logged in to start a session.")
+                return False
 
-            minutes = int(duration_minutes)
-            if minutes <= 0:
-                self.error_occurred.emit("Duration must be greater than 0.")
-                return
+            user = self._auth_viewmodel.current_user
 
             self._user_repo.create_user_with_id(
                 user_id=user.uid,
@@ -77,26 +76,29 @@ class FocusViewModel(QObject):
                 stop_event=self._stop_event,
                 error_callback=self.error_occurred.emit,
             )
-            self._worker_thread = threading.Thread(
-                target=worker.run, daemon=True)
+            self._worker_thread = threading.Thread(target=worker.run, daemon=True)
             self._worker_thread.start()
-
-            self._total_seconds = minutes * 60
-            self._remaining_seconds = self._total_seconds
-            self.timer.start(1000)
-
-            self._is_running = True
-            self._emit_timer_update()
-            self.session_started.emit()
-
+            return True
         except Exception as e:
+            try:
+                self._stop_ml_process()
+            except Exception:
+                pass
             self.error_occurred.emit(str(e))
             return False
 
     def _stop_ml_process(self):
-        if self._process:
+        stop_event = self._stop_event
+        if stop_event is not None:
             try:
-                self._worker_thread.join(timeout=3)
+                stop_event.set()
+            except Exception:
+                pass
+
+        worker_thread = self._worker_thread
+        if worker_thread is not None and worker_thread.is_alive():
+            try:
+                worker_thread.join(timeout=3)
             except Exception:
                 pass
 
@@ -111,17 +113,31 @@ class FocusViewModel(QObject):
             except Exception as exc:
                 self.error_occurred.emit(f"Failed to end session in DB: {exc}")
 
+        self._stop_event = None
+        self._worker_thread = None
+        self._session_id = None
+        self._session_start_ts = None
+
     def start_session(self, duration_minutes):
-        if self._is_running and self._mode == "focus":
+        try:
+            minutes = int(duration_minutes)
+        except (TypeError, ValueError):
+            self.error_occurred.emit("Duration must be a number of minutes.")
             return
+
+        if minutes <= 0:
+            self.error_occurred.emit("Duration must be greater than 0.")
+            return
+
+        if self._is_running:
+            self.stop_session()
 
         # Start the ML Process
         if not self._start_ml_process():
-            self.stop_session()
             return
 
         # 2. Start the Timer
-        self._total_seconds = int(duration_minutes) * 60
+        self._total_seconds = minutes * 60
         self._remaining_seconds = self._total_seconds
 
         # Save focus state
