@@ -185,7 +185,6 @@ class FocusTrackingWorker:
             print("[FocusTrackingWorker] Firestore disabled/unavailable for this session.")
         else:
             print(f"[FocusTrackingWorker] Firestore enabled for project={self._firebase_project_id}")
-            self._upsert_session_to_firestore(firestore_db)
         left_iris_indices = [469, 470, 471, 472]
         right_iris_indices = [474, 475, 476, 477]
         preview_window_name = "FocusCam Live"
