@@ -16,9 +16,16 @@ def _parse_timestamp(value):
         return None
     if isinstance(value, (int, float)):
         return datetime.datetime.fromtimestamp(value, tz=datetime.timezone.utc)
+    if isinstance(value, datetime.datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=datetime.timezone.utc)
+        return value
     if isinstance(value, str):
         try:
-            return datetime.datetime.fromisoformat(value)
+            dt = datetime.datetime.fromisoformat(value)
+            if isinstance(dt, datetime.datetime) and dt.tzinfo is None:
+                dt = dt.replace(tzinfo=datetime.timezone.utc)
+            return dt
         except ValueError:
             return value
     return value

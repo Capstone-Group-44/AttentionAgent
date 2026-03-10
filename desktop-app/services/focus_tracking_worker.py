@@ -74,7 +74,7 @@ class FocusTrackingWorker:
                 {
                     "userId": self.user_id,
                     "sessionId": self.session_id,
-                    "startTime": datetime.now(timezone.utc).isoformat(),
+                    "startTime": datetime.now(timezone.utc),
                     "createdAt": firestore.SERVER_TIMESTAMP,
                 },
                 merge=True,
