@@ -22,12 +22,14 @@ class FocusTrackingWorker:
         stop_event: Event,
         sample_callback: Optional[Callable[[int, float, float], None]] = None,
         error_callback: Optional[Callable[[str], None]] = None,
+        frame_callback: Optional[Callable[[object], None]] = None,
     ):
         self.user_id = user_id
         self.session_id = session_id
         self.stop_event = stop_event
         self.sample_callback = sample_callback
         self.error_callback = error_callback
+        self.frame_callback = frame_callback
 
         self._sample_repo = FocusSampleRepository()
 
@@ -45,7 +47,7 @@ class FocusTrackingWorker:
             ),
         )
         self._firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "attention-agent-30bd0")
-        self._show_preview = os.getenv("FOCUS_SHOW_PREVIEW", "1").strip() not in {"0", "false", "False"}
+        self._show_preview = os.getenv("FOCUS_SHOW_PREVIEW", "0").strip() not in {"0", "false", "False"}
 
     def _emit_error(self, message: str):
         if self.error_callback:
@@ -301,7 +303,7 @@ class FocusTrackingWorker:
                 if self.sample_callback:
                     self.sample_callback(int(attention_state), float(focus_score), ts)
 
-                if self._show_preview:
+                if self._show_preview or self.frame_callback:
                     state_text = "FOCUSED" if int(attention_state) == 1 else "DISTRACTED"
                     color = (0, 200, 0) if int(attention_state) == 1 else (0, 0, 255)
                     cv2.putText(
@@ -331,12 +333,16 @@ class FocusTrackingWorker:
                         (255, 255, 0),
                         2,
                     )
-                    cv2.imshow(preview_window_name, frame)
+                    
+                    if self.frame_callback:
+                        self.frame_callback(frame)
 
-                    key = cv2.waitKey(1) & 0xFF
-                    if key == ord("q"):
-                        self._show_preview = False
-                        cv2.destroyWindow(preview_window_name)
+                    if self._show_preview:
+                        cv2.imshow(preview_window_name, frame)
+                        key = cv2.waitKey(1) & 0xFF
+                        if key == ord("q"):
+                            self._show_preview = False
+                            cv2.destroyWindow(preview_window_name)
 
                 time.sleep(0.03)
         except Exception as exc:

@@ -4,7 +4,8 @@ from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect, QSpacerItem, QSizePolicy
 )
 from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QIcon, QColor, QFont
+from PySide6.QtGui import QIcon, QColor, QFont, QImage, QPixmap
+import cv2
 from view.components.circular_progress import CircularProgressWidget
 
 
@@ -251,6 +252,20 @@ class FocusView(QWidget):
         right_col.setAlignment(Qt.AlignTop)
         right_col.setSpacing(24)
 
+        # Camera Feed
+        self.camera_feed_label = QLabel("Camera Output")
+        self.camera_feed_label.setAlignment(Qt.AlignCenter)
+        self.camera_feed_label.setStyleSheet("""
+            QLabel {
+                background-color: #050608;
+                border-radius: 12px;
+                border: 1px solid #2A2B35;
+                color: #A0A5B5;
+            }
+        """)
+        self.camera_feed_label.setMinimumHeight(240)
+        right_col.addWidget(self.camera_feed_label)
+
         # Action Buttons Layout
         action_btns_layout = QVBoxLayout()
         action_btns_layout.setSpacing(12)
@@ -386,6 +401,7 @@ class FocusView(QWidget):
         self.viewmodel.session_stopped.connect(self.on_session_stopped)
         self.viewmodel.break_started.connect(self.on_break_started)
         self.viewmodel.focus_resumed.connect(self.on_focus_resumed)
+        self.viewmodel.frame_ready.connect(self.update_camera_feed)
 
     def on_start_clicked(self):
         try:
@@ -427,16 +443,34 @@ class FocusView(QWidget):
         self.circular_progress.set_text(time_str)
         self.circular_progress.set_progress(progress)
 
+    def update_camera_feed(self, frame):
+        # Frame is BGR numpy array from opencv
+        rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        h, w, ch = rgb_image.shape
+        bytes_per_line = ch * w
+        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(q_img)
+        # Scale pixmap to fit the label while keeping aspect ratio
+        scaled_pixmap = pixmap.scaled(
+            self.camera_feed_label.size(), 
+            Qt.KeepAspectRatio, 
+            Qt.SmoothTransformation
+        )
+        self.camera_feed_label.setPixmap(scaled_pixmap)
+
     def on_session_started(self):
         self.stack.setCurrentWidget(self.running_page)
         self.status_subtitle.setText("Focus Mode Active")
         self.short_break_btn.setEnabled(True)
         self.long_break_btn.setEnabled(True)
         self.circular_progress.set_subtext("Focus")
+        self.camera_feed_label.setText("Waiting for camera...")
 
     def on_session_stopped(self):
         self.stack.setCurrentWidget(self.setup_page)
         self.status_subtitle.setText("Ready to focus")
+        self.camera_feed_label.clear()
+        self.camera_feed_label.setText("Camera Output")
 
     def on_break_started(self, break_name):
         self.status_subtitle.setText(f"{break_name} Active")

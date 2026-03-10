@@ -17,6 +17,8 @@ class FocusViewModel(QObject):
     break_started = Signal(str)
     focus_resumed = Signal()  # New signal when break ends and focus resumes
     error_occurred = Signal(str)
+    # Signal emitted with numpy.ndarray containing the frame
+    frame_ready = Signal(object)
 
     def __init__(self, auth_viewmodel=None):
         super().__init__()
@@ -76,6 +78,7 @@ class FocusViewModel(QObject):
                 session_id=self._session_id,
                 stop_event=self._stop_event,
                 error_callback=self.error_occurred.emit,
+                frame_callback=self._on_frame_received,
             )
             self._worker_thread = threading.Thread(
                 target=worker.run, daemon=True)
@@ -226,3 +229,6 @@ class FocusViewModel(QObject):
             return 0, 0
         size = screen.size()
         return int(size.width()), int(size.height())
+
+    def _on_frame_received(self, frame):
+        self.frame_ready.emit(frame)
