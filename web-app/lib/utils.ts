@@ -174,11 +174,19 @@ export function calcTodayProgress(
   reports: Report[],
   today = new Date()
 ) {
+  const getDate = (val: any) => {
+    if (!val) return new Date(0);
+    if (typeof val.toDate === "function") return val.toDate();
+    if (val.seconds) return new Date(val.seconds * 1000);
+    if (val instanceof Date) return val;
+    return new Date(val);
+  };
+
   const todaysSessions = sessions.filter((s) =>
-    isSameLocalDay(s.startTime.toDate(), today)
+    isSameLocalDay(getDate(s.startTime), today)
   );
   const todaysReports = reports.filter((r) =>
-    isSameLocalDay(r.createdAt.toDate(), today)
+    isSameLocalDay(getDate(r.createdAt), today)
   );
 
   const focusSecondsToday = todaysSessions.reduce(
@@ -192,7 +200,7 @@ export function calcTodayProgress(
     todaysReports.length === 0
       ? null
       : todaysReports.reduce((sum, r) => sum + r.avgFocusScore, 0) /
-        todaysReports.length;
+      todaysReports.length;
 
   return { focusSecondsToday, sessionsToday, avgFocusScoreToday };
 }
