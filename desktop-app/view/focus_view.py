@@ -256,6 +256,7 @@ class FocusView(QWidget):
         # Camera Feed
         self.camera_feed_label = QLabel("Camera Output")
         self.camera_feed_label.setAlignment(Qt.AlignCenter)
+        self.camera_feed_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.camera_feed_label.setStyleSheet("""
             QLabel {
                 background-color: #050608;
@@ -264,7 +265,7 @@ class FocusView(QWidget):
                 color: #A0A5B5;
             }
         """)
-        self.camera_feed_label.setMinimumHeight(240)
+        self.camera_feed_label.setMinimumSize(400, 300)
         right_col.addWidget(self.camera_feed_label)
 
         # Action Buttons Layout
@@ -445,6 +446,9 @@ class FocusView(QWidget):
         self.circular_progress.set_progress(progress)
 
     def update_camera_feed(self, frame):
+        if self.viewmodel._mode != "focus":
+            return
+            
         # Frame is BGR numpy array from opencv
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb_image.shape
@@ -478,9 +482,12 @@ class FocusView(QWidget):
         self.short_break_btn.setEnabled(False)
         self.long_break_btn.setEnabled(False)
         self.circular_progress.set_subtext("Break")
+        self.camera_feed_label.clear()
+        self.camera_feed_label.setText(f"{break_name} - Camera Paused")
 
     def on_focus_resumed(self):
         self.status_subtitle.setText("Session Active")
         self.short_break_btn.setEnabled(True)
         self.long_break_btn.setEnabled(True)
         self.circular_progress.set_subtext("Focus")
+        self.camera_feed_label.setText("Resuming camera...")

@@ -5,6 +5,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QColor, QFont, QCursor
 
+from services.notification_service import NotificationService
+
 class SettingsView(QWidget):
     back_requested = Signal()
     logout_requested = Signal()
@@ -186,9 +188,32 @@ class SettingsView(QWidget):
         notif_title.setStyleSheet("color: #E0E1E6; font-size: 18px; font-weight: 600;") 
         notif_card_layout.addWidget(notif_title)
         
-        notif_subtitle = QLabel("Coming soon")
-        notif_subtitle.setStyleSheet("color: #8A8DA0; font-size: 15px; font-weight: 500;")
-        notif_card_layout.addWidget(notif_subtitle)
+        test_notif_btn = QPushButton("Test Notification")
+        test_notif_btn.setCursor(Qt.PointingHandCursor)
+        test_notif_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3B82F6; 
+                color: #FFFFFF; 
+                font-size: 14px;
+                font-weight: 600;
+                border-radius: 8px; 
+                padding: 10px 16px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #2563EB;
+            }
+            QPushButton:pressed {
+                background-color: #1D4ED8;
+            }
+        """)
+        test_notif_btn.clicked.connect(self._handle_test_notification)
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.addWidget(test_notif_btn)
+        btn_layout.addStretch()
+        
+        notif_card_layout.addLayout(btn_layout)
         
         content_layout.addWidget(notifications_card)
         
@@ -204,3 +229,6 @@ class SettingsView(QWidget):
         if self.auth_viewmodel:
             self.auth_viewmodel.logout()
         self.logout_requested.emit()
+
+    def _handle_test_notification(self):
+        NotificationService.send_notification("gazeCam", "User Distracted")
