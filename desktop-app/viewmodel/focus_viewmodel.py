@@ -6,7 +6,7 @@ from PySide6.QtGui import QGuiApplication
 from db.session_repository import SessionRepository
 from db.user_repository import UserRepository
 from services.focus_tracking_worker import FocusTrackingWorker
-
+from services.notification_service import NotificationService
 
 class FocusViewModel(QObject):
     # Signal emited with (time_string, progress_value_0_to_100)
@@ -180,6 +180,7 @@ class FocusViewModel(QObject):
 
         # 3. Start Break Timer
         self._mode = "break"
+        self._current_break_name = break_name
         self._total_seconds = int(duration_minutes) * 60
         self._remaining_seconds = self._total_seconds
 
@@ -193,6 +194,9 @@ class FocusViewModel(QObject):
         else:
             if self._mode == "break":
                 # Break finished. Resume Focus mode.
+                break_name = getattr(self, "_current_break_name", "Break")
+                NotificationService.send_notification("gazeCam", f"{break_name} has ended")
+
                 self._mode = "focus"
 
                 # Restore original focus state
