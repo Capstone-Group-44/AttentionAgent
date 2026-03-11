@@ -167,7 +167,7 @@ class FocusView(QWidget):
         durations_row.setSpacing(16)
 
         self.duration_input = self.create_stacked_input_card(
-            "Session Duration (min)", "25")
+            "Session (min)", "25")
         durations_row.addWidget(self.duration_input)
 
         self.short_break_input = self.create_stacked_input_card(
@@ -208,6 +208,7 @@ class FocusView(QWidget):
         # If it's a number, use as text. If not, treat as placeholder text.
         if default_value_or_placeholder.isdigit():
             inp.setText(default_value_or_placeholder)
+            inp.setAlignment(Qt.AlignCenter)
         else:
             inp.setPlaceholderText(default_value_or_placeholder)
 
