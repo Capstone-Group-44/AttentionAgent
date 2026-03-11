@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
-    QFrame, QSpacerItem, QSizePolicy
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
+    QFrame, QSpacerItem, QSizePolicy, QLineEdit
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QColor, QFont, QCursor
@@ -214,7 +214,55 @@ class SettingsView(QWidget):
         btn_layout.addStretch()
         
         notif_card_layout.addLayout(btn_layout)
-        
+
+        notif_card_layout.addSpacing(12)
+
+        # --- Distracted Time field ---
+        distracted_label = QLabel("Distracted Time (seconds)")
+        distracted_label.setStyleSheet("color: #8A8DA0; font-size: 14px; font-weight: 500;")
+        notif_card_layout.addWidget(distracted_label)
+
+        self.distracted_time_input = QLineEdit("20")
+        self.distracted_time_input.setPlaceholderText("Min 5")
+        self.distracted_time_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #12131A;
+                color: #E0E1E6;
+                font-size: 14px;
+                border: 1px solid #2A2B35;
+                border-radius: 8px;
+                padding: 10px 12px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #3B82F6;
+            }
+        """)
+        notif_card_layout.addWidget(self.distracted_time_input)
+
+        notif_card_layout.addSpacing(8)
+
+        # --- Frequency of Notifications field ---
+        freq_label = QLabel("Frequency of Notifications (seconds)")
+        freq_label.setStyleSheet("color: #8A8DA0; font-size: 14px; font-weight: 500;")
+        notif_card_layout.addWidget(freq_label)
+
+        self.notif_freq_input = QLineEdit("60")
+        self.notif_freq_input.setPlaceholderText("0 = no cooldown")
+        self.notif_freq_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #12131A;
+                color: #E0E1E6;
+                font-size: 14px;
+                border: 1px solid #2A2B35;
+                border-radius: 8px;
+                padding: 10px 12px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #3B82F6;
+            }
+        """)
+        notif_card_layout.addWidget(self.notif_freq_input)
+
         content_layout.addWidget(notifications_card)
         
         content_layout.addStretch()
@@ -232,3 +280,22 @@ class SettingsView(QWidget):
 
     def _handle_test_notification(self):
         NotificationService.send_notification("gazeCam", "User Distracted")
+
+    # ------------------------------------------------------------------
+    # Public accessors for distraction notifier settings
+    # ------------------------------------------------------------------
+    def get_distracted_time_seconds(self) -> int:
+        """Return the distracted-time value (min 5, default 20)."""
+        try:
+            val = int(self.distracted_time_input.text())
+            return max(val, 5)
+        except (ValueError, AttributeError):
+            return 20
+
+    def get_notif_frequency_seconds(self) -> int:
+        """Return the notification-frequency value (min 0, default 60)."""
+        try:
+            val = int(self.notif_freq_input.text())
+            return max(val, 0)
+        except (ValueError, AttributeError):
+            return 60

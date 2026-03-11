@@ -41,6 +41,9 @@ class MainWindow(QMainWindow):
         self.settings_view.back_requested.connect(self.show_focus_view)
         self.settings_view.logout_requested.connect(self.handle_logout)
 
+        # Give the focus viewmodel access to settings
+        self.focus_viewmodel.set_settings_view(self.settings_view)
+
         # Auto-login if session exists
         if self.auth_viewmodel.current_user:
             self.show_focus_view()

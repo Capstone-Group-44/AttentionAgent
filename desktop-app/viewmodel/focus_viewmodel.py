@@ -5,6 +5,7 @@ from PySide6.QtGui import QGuiApplication
 
 from db.session_repository import SessionRepository
 from db.user_repository import UserRepository
+from services.distraction_notifier_worker import DistractionNotifierWorker
 from services.focus_tracking_worker import FocusTrackingWorker
 from services.notification_service import NotificationService
 
@@ -26,6 +27,7 @@ class FocusViewModel(QObject):
         self._is_running = False
         self._stop_event = None
         self._worker_thread = None
+        self._notifier_thread = None
         self._session_id = None
         self._session_start_ts = None
 
@@ -43,9 +45,15 @@ class FocusViewModel(QObject):
         self._total_seconds = 0
         self._remaining_seconds = 0
 
+        self._settings_view = None
+
     @property
     def is_running(self):
         return self._is_running
+
+    def set_settings_view(self, view):
+        """Provide a reference to the SettingsView so we can read user preferences."""
+        self._settings_view = view
 
     def _start_ml_process(self) -> bool:
         try:
@@ -83,6 +91,24 @@ class FocusViewModel(QObject):
             self._worker_thread = threading.Thread(
                 target=worker.run, daemon=True)
             self._worker_thread.start()
+
+            # Start the distraction notifier alongside the ML worker
+            eval_window = 20
+            cooldown = 60
+            if self._settings_view is not None:
+                eval_window = self._settings_view.get_distracted_time_seconds()
+                cooldown = self._settings_view.get_notif_frequency_seconds()
+
+            notifier = DistractionNotifierWorker(
+                session_id=self._session_id,
+                stop_event=self._stop_event,
+                evaluation_window=eval_window,
+                cooldown=cooldown,
+            )
+            self._notifier_thread = threading.Thread(
+                target=notifier.run, daemon=True)
+            self._notifier_thread.start()
+
             return True
         except Exception as e:
             try:
@@ -107,6 +133,13 @@ class FocusViewModel(QObject):
             except Exception:
                 pass
 
+        notifier_thread = self._notifier_thread
+        if notifier_thread is not None and notifier_thread.is_alive():
+            try:
+                notifier_thread.join(timeout=3)
+            except Exception:
+                pass
+
         duration_seconds = 0.0
         if self._session_start_ts is not None:
             duration_seconds = max(0.0, time.time() - self._session_start_ts)
@@ -120,6 +153,7 @@ class FocusViewModel(QObject):
 
         self._stop_event = None
         self._worker_thread = None
+        self._notifier_thread = None
         self._session_id = None
         self._session_start_ts = None
 
