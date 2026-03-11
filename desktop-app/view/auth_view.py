@@ -7,7 +7,7 @@ class AuthView(QWidget):
         super().__init__()
         self.viewmodel = viewmodel
 
-        self.setWindowTitle("FocusCam")
+        self.setWindowTitle("gazeCam")
         self.setMinimumSize(500, 500)
 
         # Layouts

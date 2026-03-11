@@ -73,7 +73,7 @@ class FocusView(QWidget):
 
         header_layout.addLayout(top_row)
 
-        self.status_subtitle = QLabel("Ready to focus")
+        self.status_subtitle = QLabel("Ready to start session")
         self.status_subtitle.setStyleSheet(
             "color: rgba(255,255,255,0.8); font-size: 14px;")
         header_layout.addWidget(self.status_subtitle)
@@ -136,7 +136,7 @@ class FocusView(QWidget):
         right_col.setSpacing(24)
 
         # Start Button
-        self.start_btn = QPushButton("Start Focus Session")
+        self.start_btn = QPushButton("Start Session")
         self.start_btn.setCursor(Qt.PointingHandCursor)
         self.start_btn.setStyleSheet("""
             QPushButton {
@@ -167,7 +167,7 @@ class FocusView(QWidget):
         durations_row.setSpacing(16)
 
         self.duration_input = self.create_stacked_input_card(
-            "Focus (min)", "25")
+            "Session Duration (min)", "25")
         durations_row.addWidget(self.duration_input)
 
         self.short_break_input = self.create_stacked_input_card(
@@ -460,7 +460,7 @@ class FocusView(QWidget):
 
     def on_session_started(self):
         self.stack.setCurrentWidget(self.running_page)
-        self.status_subtitle.setText("Focus Mode Active")
+        self.status_subtitle.setText("Session Active")
         self.short_break_btn.setEnabled(True)
         self.long_break_btn.setEnabled(True)
         self.circular_progress.set_subtext("Focus")
@@ -468,7 +468,7 @@ class FocusView(QWidget):
 
     def on_session_stopped(self):
         self.stack.setCurrentWidget(self.setup_page)
-        self.status_subtitle.setText("Ready to focus")
+        self.status_subtitle.setText("Ready to start session")
         self.camera_feed_label.clear()
         self.camera_feed_label.setText("Camera Output")
 
@@ -479,7 +479,7 @@ class FocusView(QWidget):
         self.circular_progress.set_subtext("Break")
 
     def on_focus_resumed(self):
-        self.status_subtitle.setText("Focus Mode Active")
+        self.status_subtitle.setText("Session Active")
         self.short_break_btn.setEnabled(True)
         self.long_break_btn.setEnabled(True)
         self.circular_progress.set_subtext("Focus")
