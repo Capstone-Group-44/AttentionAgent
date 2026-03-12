@@ -20,7 +20,7 @@ class AuthView(QWidget):
         self.setLayout(main_layout)
         
         # Create Title
-        self.title_label = QLabel("Welcome to Focus Timer")
+        self.title_label = QLabel("Welcome to Screen Gaze")
         title_font = QFont("Inter", 26, QFont.Bold)
         self.title_label.setFont(title_font)
         self.title_label.setAlignment(Qt.AlignCenter)
@@ -107,7 +107,7 @@ class AuthView(QWidget):
         
         # Feature 1
         features_layout.addLayout(self.create_feature_col(
-            "Focus Sessions", "Customizable timers", 
+            "Gaze Sessions", "Customizable timers", 
             os.path.join(icons_dir, "clock.svg"), "rgba(59, 130, 246, 0.15)", "#60a5fa"
         ))
         
