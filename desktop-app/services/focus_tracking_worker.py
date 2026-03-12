@@ -125,7 +125,10 @@ class FocusTrackingWorker:
                 sample_id
             ).set(
                 {
-                    "timestamp": ts,
+                    # Store as Firestore Timestamp (shows as a formatted date in the console).
+                    "timestamp": datetime.fromtimestamp(ts, tz=timezone.utc),
+                    # Keep raw epoch seconds for debugging/interop.
+                    "timestampEpoch": float(ts),
                     "timestampIso": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
                     "leftIrisX": left_x,
                     "leftIrisY": left_y,
