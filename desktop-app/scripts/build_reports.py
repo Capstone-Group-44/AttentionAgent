@@ -27,6 +27,20 @@ def _connect_db(db_path):
     return conn
 
 
+def _init_firestore(key_path: str, project_id: str):
+    if not os.path.exists(key_path):
+        raise FileNotFoundError(f"Service account JSON not found: {key_path}")
+    try:
+        try:
+            app = firebase_admin.get_app()
+        except ValueError:
+            cred = credentials.Certificate(key_path)
+            app = firebase_admin.initialize_app(cred, {"projectId": project_id})
+        return firestore.client(app=app)
+    except Exception as exc:
+        raise RuntimeError(f"Firestore initialization failed: {exc}") from exc
+
+
 def _calculate_session_metrics(conn, session_id, duration_seconds):
     cur = conn.execute(
         """
@@ -86,21 +100,28 @@ def _calculate_session_metrics(conn, session_id, duration_seconds):
     }
 
 
-def _sync_reports(conn, db):
-    cur = conn.execute(
-        """
-        SELECT session_id, user_id, start_time, end_time, duration_seconds
-        FROM sessions
-        ORDER BY start_time DESC
-        LIMIT 1
-        """
-    )
-    for row in cur.fetchall():
-        metrics = _calculate_session_metrics(
-            conn, row["session_id"], row["duration_seconds"]
-        )
+def sync_report_for_session(*, db_path: str, key_path: str, project_id: str, session_id: str) -> bool:
+    if not os.path.exists(db_path):
+        raise FileNotFoundError(f"SQLite DB not found: {db_path}")
+
+    db = _init_firestore(key_path, project_id)
+
+    conn = _connect_db(db_path)
+    try:
+        row = conn.execute(
+            """
+            SELECT session_id, user_id, start_time, end_time, duration_seconds
+            FROM sessions
+            WHERE session_id = ?
+            """,
+            (session_id,),
+        ).fetchone()
+        if row is None:
+            return False
+
+        metrics = _calculate_session_metrics(conn, row["session_id"], row["duration_seconds"])
         if metrics is None:
-            continue
+            return False
 
         created_at = row["end_time"] or row["start_time"]
         doc = {
@@ -112,6 +133,35 @@ def _sync_reports(conn, db):
             "userId": row["user_id"],
         }
         db.collection("reports").document(row["session_id"]).set(doc, merge=True)
+        return True
+    finally:
+        conn.close()
+
+
+def sync_latest_report(*, db_path: str, key_path: str, project_id: str) -> bool:
+    if not os.path.exists(db_path):
+        raise FileNotFoundError(f"SQLite DB not found: {db_path}")
+
+    conn = _connect_db(db_path)
+    try:
+        row = conn.execute(
+            """
+            SELECT session_id
+            FROM sessions
+            ORDER BY start_time DESC
+            LIMIT 1
+            """
+        ).fetchone()
+        if row is None:
+            return False
+        return sync_report_for_session(
+            db_path=db_path,
+            key_path=key_path,
+            project_id=project_id,
+            session_id=row["session_id"],
+        )
+    finally:
+        conn.close()
 
 
 def main():
@@ -137,22 +187,32 @@ def main():
         default="attention-agent-30bd0",
         help="Firebase project ID.",
     )
+    parser.add_argument(
+        "--session-id",
+        default=None,
+        help="If set, build and sync report for this session_id; otherwise uses latest session.",
+    )
     args = parser.parse_args()
 
-    if not os.path.exists(args.db_path):
-        raise SystemExit(f"SQLite DB not found: {args.db_path}")
-    if not os.path.exists(args.key_path):
-        raise SystemExit(f"Service account JSON not found: {args.key_path}")
-
-    cred = credentials.Certificate(args.key_path)
-    firebase_admin.initialize_app(cred, {"projectId": args.project_id})
-    db = firestore.client()
-
-    conn = _connect_db(args.db_path)
     try:
-        _sync_reports(conn, db)
-    finally:
-        conn.close()
+        if args.session_id:
+            ok = sync_report_for_session(
+                db_path=args.db_path,
+                key_path=args.key_path,
+                project_id=args.project_id,
+                session_id=args.session_id,
+            )
+        else:
+            ok = sync_latest_report(
+                db_path=args.db_path,
+                key_path=args.key_path,
+                project_id=args.project_id,
+            )
+    except Exception as exc:
+        raise SystemExit(str(exc))
+
+    if not ok:
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

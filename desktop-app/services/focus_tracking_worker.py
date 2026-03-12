@@ -76,7 +76,7 @@ class FocusTrackingWorker:
                 {
                     "userId": self.user_id,
                     "sessionId": self.session_id,
-                    "startTime": datetime.now(timezone.utc).isoformat(),
+                    "startTime": datetime.now(timezone.utc),
                     "createdAt": firestore.SERVER_TIMESTAMP,
                 },
                 merge=True,
@@ -127,7 +127,10 @@ class FocusTrackingWorker:
                 sample_id
             ).set(
                 {
-                    "timestamp": ts,
+                    # Store as Firestore Timestamp (shows as a formatted date in the console).
+                    "timestamp": datetime.fromtimestamp(ts, tz=timezone.utc),
+                    # Keep raw epoch seconds for debugging/interop.
+                    "timestampEpoch": float(ts),
                     "timestampIso": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
                     "leftIrisX": left_x,
                     "leftIrisY": left_y,
@@ -187,7 +190,6 @@ class FocusTrackingWorker:
             print("[FocusTrackingWorker] Firestore disabled/unavailable for this session.")
         else:
             print(f"[FocusTrackingWorker] Firestore enabled for project={self._firebase_project_id}")
-            self._upsert_session_to_firestore(firestore_db)
         left_iris_indices = [469, 470, 471, 472]
         right_iris_indices = [474, 475, 476, 477]
         preview_window_name = "Screen Gaze Live"
