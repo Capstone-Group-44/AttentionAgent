@@ -279,7 +279,7 @@ class SettingsView(QWidget):
         self.logout_requested.emit()
 
     def _handle_test_notification(self):
-        NotificationService.send_notification("gazeCam", "User Distracted")
+        NotificationService.send_notification("Screen Gaze", "User Distracted")
 
     # ------------------------------------------------------------------
     # Public accessors for distraction notifier settings

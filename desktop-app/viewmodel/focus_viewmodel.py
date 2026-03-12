@@ -229,7 +229,7 @@ class FocusViewModel(QObject):
             if self._mode == "break":
                 # Break finished. Resume Focus mode.
                 break_name = getattr(self, "_current_break_name", "Break")
-                NotificationService.send_notification("gazeCam", f"{break_name} has ended")
+                NotificationService.send_notification("Screen Gaze", f"{break_name} has ended")
 
                 self._mode = "focus"
 

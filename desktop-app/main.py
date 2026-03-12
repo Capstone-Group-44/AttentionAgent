@@ -10,7 +10,7 @@ from view.settings_view import SettingsView
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("gazeCam")
+        self.setWindowTitle("Screen Gaze")
 
         # MVVM setup
         self.auth_viewmodel = AuthViewModel()

@@ -190,7 +190,7 @@ class FocusTrackingWorker:
             self._upsert_session_to_firestore(firestore_db)
         left_iris_indices = [469, 470, 471, 472]
         right_iris_indices = [474, 475, 476, 477]
-        preview_window_name = "gazeCam Live"
+        preview_window_name = "Screen Gaze Live"
 
         try:
             predictor = FocusPredictor(self._model_path)

@@ -59,7 +59,7 @@ class DistractionNotifierWorker:
 
             # 2. Evaluate focus
             if self._is_distracted():
-                NotificationService.send_notification("gazeCam", "User is Distracted")
+                NotificationService.send_notification("Screen Gaze", "User is Distracted")
                 # 3. Cooldown after sending a notification (skip if 0)
                 if self.cooldown > 0:
                     if self._interruptible_sleep(self.cooldown):

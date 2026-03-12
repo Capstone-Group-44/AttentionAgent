@@ -60,7 +60,7 @@ class NotificationService:
         $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
         $xml.LoadXml($toastXml.OuterXml)
         $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
-        [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("gazeCam").Show($toast)
+        [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Screen Gaze").Show($toast)
         """
         
         try:
