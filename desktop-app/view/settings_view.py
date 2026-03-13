@@ -25,6 +25,9 @@ class SettingsView(QWidget):
             }
         """)
         self.init_ui()
+        self.refresh_user_info()
+        if self.auth_viewmodel:
+            self.auth_viewmodel.login_success.connect(self.refresh_user_info)
 
     def init_ui(self):
         main_layout = QVBoxLayout()
@@ -117,17 +120,9 @@ class SettingsView(QWidget):
         logged_in_label = QLabel("Logged in as")
         logged_in_label.setStyleSheet("color: #8A8DA0; font-size: 15px; font-weight: 500;")
         user_card_layout.addWidget(logged_in_label)
-        
-        if self.auth_viewmodel and self.auth_viewmodel.current_user:
-            user = self.auth_viewmodel.current_user
-            email_label = QLabel(user.email)
-            email_label.setStyleSheet("color: #E0E1E6; font-size: 18px; font-weight: 600;")
-            user_card_layout.addWidget(email_label)
-        else:
-             # Fallback
-            error_label = QLabel("Not logged in")
-            error_label.setStyleSheet("color: #F87171; font-weight: 600;")
-            user_card_layout.addWidget(error_label)
+
+        self.user_info_label = QLabel("")
+        user_card_layout.addWidget(self.user_info_label)
             
         content_layout.addWidget(user_card)
         
@@ -272,6 +267,15 @@ class SettingsView(QWidget):
 
     def _handle_back(self):
         self.back_requested.emit()
+
+    def refresh_user_info(self, _username=None):
+        """Update the user info label from the current auth state."""
+        if self.auth_viewmodel and self.auth_viewmodel.current_user:
+            self.user_info_label.setText(self.auth_viewmodel.current_user.email)
+            self.user_info_label.setStyleSheet("color: #E0E1E6; font-size: 18px; font-weight: 600;")
+        else:
+            self.user_info_label.setText("Not logged in")
+            self.user_info_label.setStyleSheet("color: #F87171; font-weight: 600;")
 
     def _handle_logout(self):
         if self.auth_viewmodel:
