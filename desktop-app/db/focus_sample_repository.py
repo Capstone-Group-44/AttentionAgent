@@ -1,3 +1,4 @@
+import time
 import uuid
 from .database import Database
 
@@ -55,5 +56,20 @@ class FocusSampleRepository:
         except Exception:
             conn.rollback()
             raise
+        finally:
+            conn.close()
+
+    def get_recent_attention_states(self, session_id, seconds_ago=30):
+        """Return a list of attention_state values recorded in the last *seconds_ago* seconds."""
+        cutoff = time.time() - seconds_ago
+        conn = self.db.connect()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT attention_state FROM focus_samples "
+                "WHERE session_id = ? AND timestamp >= ?",
+                (session_id, cutoff),
+            )
+            return [row[0] for row in cur.fetchall()]
         finally:
             conn.close()

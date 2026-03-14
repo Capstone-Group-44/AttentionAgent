@@ -1,11 +1,21 @@
+import os
 import threading
 import time
+from datetime import datetime, timezone
+import sqlite3
 from PySide6.QtCore import QObject, Signal, QTimer
 from PySide6.QtGui import QGuiApplication
 
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import firestore
+
 from db.session_repository import SessionRepository
 from db.user_repository import UserRepository
+from services.distraction_notifier_worker import DistractionNotifierWorker
 from services.focus_tracking_worker import FocusTrackingWorker
+from services.notification_service import NotificationService
+from scripts import build_reports
 
 
 class FocusViewModel(QObject):
@@ -17,6 +27,8 @@ class FocusViewModel(QObject):
     break_started = Signal(str)
     focus_resumed = Signal()  # New signal when break ends and focus resumes
     error_occurred = Signal(str)
+    # Signal emitted with numpy.ndarray containing the frame
+    frame_ready = Signal(object)
 
     def __init__(self, auth_viewmodel=None):
         super().__init__()
@@ -24,6 +36,7 @@ class FocusViewModel(QObject):
         self._is_running = False
         self._stop_event = None
         self._worker_thread = None
+        self._notifier_thread = None
         self._session_id = None
         self._session_start_ts = None
 
@@ -41,9 +54,15 @@ class FocusViewModel(QObject):
         self._total_seconds = 0
         self._remaining_seconds = 0
 
+        self._settings_view = None
+
     @property
     def is_running(self):
         return self._is_running
+
+    def set_settings_view(self, view):
+        """Provide a reference to the SettingsView so we can read user preferences."""
+        self._settings_view = view
 
     def _start_ml_process(self) -> bool:
         try:
@@ -76,10 +95,29 @@ class FocusViewModel(QObject):
                 session_id=self._session_id,
                 stop_event=self._stop_event,
                 error_callback=self.error_occurred.emit,
+                frame_callback=self._on_frame_received,
             )
             self._worker_thread = threading.Thread(
                 target=worker.run, daemon=True)
             self._worker_thread.start()
+
+            # Start the distraction notifier alongside the ML worker
+            eval_window = 20
+            cooldown = 60
+            if self._settings_view is not None:
+                eval_window = self._settings_view.get_distracted_time_seconds()
+                cooldown = self._settings_view.get_notif_frequency_seconds()
+
+            notifier = DistractionNotifierWorker(
+                session_id=self._session_id,
+                stop_event=self._stop_event,
+                evaluation_window=eval_window,
+                cooldown=cooldown,
+            )
+            self._notifier_thread = threading.Thread(
+                target=notifier.run, daemon=True)
+            self._notifier_thread.start()
+
             return True
         except Exception as e:
             try:
@@ -104,21 +142,158 @@ class FocusViewModel(QObject):
             except Exception:
                 pass
 
+        notifier_thread = self._notifier_thread
+        if notifier_thread is not None and notifier_thread.is_alive():
+            try:
+                notifier_thread.join(timeout=3)
+            except Exception:
+                pass
+
         duration_seconds = 0.0
         if self._session_start_ts is not None:
             duration_seconds = max(0.0, time.time() - self._session_start_ts)
 
         if self._session_id is not None:
+            session_id = self._session_id
             try:
                 self._session_repo.end_session(
                     self._session_id, duration_seconds)
             except Exception as exc:
                 self.error_occurred.emit(f"Failed to end session in DB: {exc}")
 
+            self._sync_session_end_to_firestore_async(
+                session_id, duration_seconds)
+            self._sync_report_to_firestore_async(session_id)
+
         self._stop_event = None
         self._worker_thread = None
+        self._notifier_thread = None
         self._session_id = None
         self._session_start_ts = None
+
+    def _get_session_row(self, session_id: str):
+        conn = self._session_repo.db.connect()
+        conn.row_factory = sqlite3.Row
+        try:
+            return conn.execute(
+                """
+                SELECT session_id, user_id, start_time, end_time, duration_seconds
+                FROM sessions
+                WHERE session_id = ?
+                """,
+                (session_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+
+    def _parse_sqlite_datetime_utc(self, value):
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                return value.replace(tzinfo=timezone.utc)
+            return value
+        if isinstance(value, (int, float)):
+            return datetime.fromtimestamp(float(value), tz=timezone.utc)
+        if isinstance(value, str):
+            try:
+                dt = datetime.fromisoformat(value)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt
+            except ValueError:
+                return None
+        return None
+
+    def _init_firestore(self):
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        key_path = os.getenv(
+            "FIREBASE_KEY_PATH",
+            os.path.join(
+                base_dir,
+                "keys",
+                "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json",
+            ),
+        )
+        project_id = os.getenv("FIREBASE_PROJECT_ID", "attention-agent-30bd0")
+        if not os.path.exists(key_path):
+            return None
+
+        try:
+            try:
+                app = firebase_admin.get_app()
+            except ValueError:
+                cred = credentials.Certificate(key_path)
+                app = firebase_admin.initialize_app(
+                    cred, {"projectId": project_id})
+            return firestore.client(app=app)
+        except Exception as exc:
+            self.error_occurred.emit(f"Firestore initialization failed: {exc}")
+            return None
+
+    def _sync_session_end_to_firestore_async(self, session_id: str, duration_seconds: float):
+        def _run():
+            try:
+                db = self._init_firestore()
+                if db is None:
+                    return
+
+                row = self._get_session_row(session_id)
+                if row is None:
+                    return
+
+                start_time = self._parse_sqlite_datetime_utc(row["start_time"])
+                end_time = self._parse_sqlite_datetime_utc(row["end_time"])
+                payload = {
+                    "sessionId": row["session_id"],
+                    "userId": row["user_id"],
+                    "durationSeconds": float(duration_seconds),
+                }
+                if start_time is not None:
+                    payload["startTime"] = start_time
+                    payload["createdAt"] = start_time
+                if end_time is not None:
+                    payload["endTime"] = end_time
+                if "createdAt" not in payload:
+                    payload["createdAt"] = firestore.SERVER_TIMESTAMP
+
+                db.collection("sessions").document(
+                    session_id).set(payload, merge=True)
+            except Exception as exc:
+                self.error_occurred.emit(
+                    f"Failed to sync session end to Firestore: {exc}")
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _sync_report_to_firestore_async(self, session_id: str):
+        def _run():
+            try:
+                db_path = self._session_repo.db.db_path
+                base_dir = os.path.dirname(
+                    os.path.dirname(os.path.abspath(__file__)))
+                key_path = os.getenv(
+                    "FIREBASE_KEY_PATH",
+                    os.path.join(
+                        base_dir,
+                        "keys",
+                        "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json",
+                    ),
+                )
+                project_id = os.getenv(
+                    "FIREBASE_PROJECT_ID", "attention-agent-30bd0")
+                build_reports.sync_report_for_session(
+                    db_path=db_path,
+                    key_path=key_path,
+                    project_id=project_id,
+                    session_id=session_id,
+                )
+            except FileNotFoundError:
+                return
+            except Exception as exc:
+                self.error_occurred.emit(
+                    f"Failed to sync report to Firestore: {exc}")
+
+        threading.Thread(target=_run, daemon=True).start()
 
     def start_session(self, duration_minutes):
         try:
@@ -177,6 +352,7 @@ class FocusViewModel(QObject):
 
         # 3. Start Break Timer
         self._mode = "break"
+        self._current_break_name = break_name
         self._total_seconds = int(duration_minutes) * 60
         self._remaining_seconds = self._total_seconds
 
@@ -190,6 +366,10 @@ class FocusViewModel(QObject):
         else:
             if self._mode == "break":
                 # Break finished. Resume Focus mode.
+                break_name = getattr(self, "_current_break_name", "Break")
+                NotificationService.send_notification(
+                    "Screen Gaze", f"{break_name} has ended")
+
                 self._mode = "focus"
 
                 # Restore original focus state
@@ -226,3 +406,6 @@ class FocusViewModel(QObject):
             return 0, 0
         size = screen.size()
         return int(size.width()), int(size.height())
+
+    def _on_frame_received(self, frame):
+        self.frame_ready.emit(frame)

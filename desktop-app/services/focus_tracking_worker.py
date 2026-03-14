@@ -22,12 +22,14 @@ class FocusTrackingWorker:
         stop_event: Event,
         sample_callback: Optional[Callable[[int, float, float], None]] = None,
         error_callback: Optional[Callable[[str], None]] = None,
+        frame_callback: Optional[Callable[[object], None]] = None,
     ):
         self.user_id = user_id
         self.session_id = session_id
         self.stop_event = stop_event
         self.sample_callback = sample_callback
         self.error_callback = error_callback
+        self.frame_callback = frame_callback
 
         self._sample_repo = FocusSampleRepository()
 
@@ -45,7 +47,7 @@ class FocusTrackingWorker:
             ),
         )
         self._firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "attention-agent-30bd0")
-        self._show_preview = os.getenv("FOCUS_SHOW_PREVIEW", "1").strip() not in {"0", "false", "False"}
+        self._show_preview = os.getenv("FOCUS_SHOW_PREVIEW", "0").strip() not in {"0", "false", "False"}
 
     def _emit_error(self, message: str):
         if self.error_callback:
@@ -74,7 +76,7 @@ class FocusTrackingWorker:
                 {
                     "userId": self.user_id,
                     "sessionId": self.session_id,
-                    "startTime": datetime.now(timezone.utc).isoformat(),
+                    "startTime": datetime.now(timezone.utc),
                     "createdAt": firestore.SERVER_TIMESTAMP,
                 },
                 merge=True,
@@ -125,7 +127,10 @@ class FocusTrackingWorker:
                 sample_id
             ).set(
                 {
-                    "timestamp": ts,
+                    # Store as Firestore Timestamp (shows as a formatted date in the console).
+                    "timestamp": datetime.fromtimestamp(ts, tz=timezone.utc),
+                    # Keep raw epoch seconds for debugging/interop.
+                    "timestampEpoch": float(ts),
                     "timestampIso": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
                     "leftIrisX": left_x,
                     "leftIrisY": left_y,
@@ -185,10 +190,9 @@ class FocusTrackingWorker:
             print("[FocusTrackingWorker] Firestore disabled/unavailable for this session.")
         else:
             print(f"[FocusTrackingWorker] Firestore enabled for project={self._firebase_project_id}")
-            self._upsert_session_to_firestore(firestore_db)
         left_iris_indices = [469, 470, 471, 472]
         right_iris_indices = [474, 475, 476, 477]
-        preview_window_name = "FocusCam Live"
+        preview_window_name = "Screen Gaze Live"
 
         try:
             predictor = FocusPredictor(self._model_path)
@@ -203,107 +207,113 @@ class FocusTrackingWorker:
                     time.sleep(0.01)
                     continue
 
+                # Default to NOT FOCUSED when no face is detected
+                attention_state = 0
+                focus_score = 0.0
+                state_text = "NO FACE"
+                color = (0, 0, 255) # Red for NO FACE
+
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = predictor.face_mesh.process(rgb)
-                if not results.multi_face_landmarks:
-                    continue
+                
+                if results.multi_face_landmarks:
+                    landmarks = results.multi_face_landmarks[0].landmark
+                    img_h, img_w = frame.shape[:2]
 
-                landmarks = results.multi_face_landmarks[0].landmark
-                img_h, img_w = frame.shape[:2]
+                    features = predictor.extract_features(landmarks, img_w, img_h)
+                    attention_state, focus_score = predictor.predict(features)
+                    ts = time.time()
 
-                features = predictor.extract_features(landmarks, img_w, img_h)
-                attention_state, focus_score = predictor.predict(features)
-                ts = time.time()
+                    (
+                        feat_face_x, feat_face_y, feat_face_w, feat_face_h,
+                        feat_left_eye_x, feat_left_eye_y, feat_left_eye_w, feat_left_eye_h,
+                        feat_right_eye_x, feat_right_eye_y, feat_right_eye_w, feat_right_eye_h,
+                        feat_left_eye_dx, feat_left_eye_dy,
+                        feat_right_eye_dx, feat_right_eye_dy,
+                        feat_sym_dx, feat_sym_dy,
+                        feat_yaw, feat_pitch, feat_roll,
+                    ) = features
 
-                (
-                    feat_face_x, feat_face_y, feat_face_w, feat_face_h,
-                    feat_left_eye_x, feat_left_eye_y, feat_left_eye_w, feat_left_eye_h,
-                    feat_right_eye_x, feat_right_eye_y, feat_right_eye_w, feat_right_eye_h,
-                    feat_left_eye_dx, feat_left_eye_dy,
-                    feat_right_eye_dx, feat_right_eye_dy,
-                    feat_sym_dx, feat_sym_dy,
-                    feat_yaw, feat_pitch, feat_roll,
-                ) = features
+                    left_x, left_y = self._iris_center(landmarks, left_iris_indices)
+                    right_x, right_y = self._iris_center(landmarks, right_iris_indices)
+                    nose_z = landmarks[1].z
 
-                left_x, left_y = self._iris_center(landmarks, left_iris_indices)
-                right_x, right_y = self._iris_center(landmarks, right_iris_indices)
-                nose_z = landmarks[1].z
+                    sample_id = self._sample_repo.insert_sample(
+                        session_id=self.session_id,
+                        timestamp=ts,
+                        left_x=left_x,
+                        left_y=left_y,
+                        right_x=right_x,
+                        right_y=right_y,
+                        face_x=float(feat_face_x),
+                        face_y=float(feat_face_y),
+                        face_z=nose_z,
+                        attention_state=int(attention_state),
+                        focus_score=float(focus_score),
+                        face_w=float(feat_face_w),
+                        face_h=float(feat_face_h),
+                        left_eye_x=float(feat_left_eye_x),
+                        left_eye_y=float(feat_left_eye_y),
+                        left_eye_w=float(feat_left_eye_w),
+                        left_eye_h=float(feat_left_eye_h),
+                        right_eye_x=float(feat_right_eye_x),
+                        right_eye_y=float(feat_right_eye_y),
+                        right_eye_w=float(feat_right_eye_w),
+                        right_eye_h=float(feat_right_eye_h),
+                        left_eye_dx=float(feat_left_eye_dx),
+                        left_eye_dy=float(feat_left_eye_dy),
+                        right_eye_dx=float(feat_right_eye_dx),
+                        right_eye_dy=float(feat_right_eye_dy),
+                        sym_dx=float(feat_sym_dx),
+                        sym_dy=float(feat_sym_dy),
+                        yaw=float(feat_yaw),
+                        pitch=float(feat_pitch),
+                        roll=float(feat_roll),
+                        label=int(attention_state),
+                    )
 
-                sample_id = self._sample_repo.insert_sample(
-                    session_id=self.session_id,
-                    timestamp=ts,
-                    left_x=left_x,
-                    left_y=left_y,
-                    right_x=right_x,
-                    right_y=right_y,
-                    face_x=float(feat_face_x),
-                    face_y=float(feat_face_y),
-                    face_z=nose_z,
-                    attention_state=int(attention_state),
-                    focus_score=float(focus_score),
-                    face_w=float(feat_face_w),
-                    face_h=float(feat_face_h),
-                    left_eye_x=float(feat_left_eye_x),
-                    left_eye_y=float(feat_left_eye_y),
-                    left_eye_w=float(feat_left_eye_w),
-                    left_eye_h=float(feat_left_eye_h),
-                    right_eye_x=float(feat_right_eye_x),
-                    right_eye_y=float(feat_right_eye_y),
-                    right_eye_w=float(feat_right_eye_w),
-                    right_eye_h=float(feat_right_eye_h),
-                    left_eye_dx=float(feat_left_eye_dx),
-                    left_eye_dy=float(feat_left_eye_dy),
-                    right_eye_dx=float(feat_right_eye_dx),
-                    right_eye_dy=float(feat_right_eye_dy),
-                    sym_dx=float(feat_sym_dx),
-                    sym_dy=float(feat_sym_dy),
-                    yaw=float(feat_yaw),
-                    pitch=float(feat_pitch),
-                    roll=float(feat_roll),
-                    label=int(attention_state),
-                )
+                    self._push_sample_to_firestore(
+                        firestore_db,
+                        sample_id=sample_id,
+                        ts=ts,
+                        left_x=left_x,
+                        left_y=left_y,
+                        right_x=right_x,
+                        right_y=right_y,
+                        face_x=float(feat_face_x),
+                        face_y=float(feat_face_y),
+                        face_z=nose_z,
+                        attention_state=int(attention_state),
+                        focus_score=float(focus_score),
+                        face_w=float(feat_face_w),
+                        face_h=float(feat_face_h),
+                        left_eye_x=float(feat_left_eye_x),
+                        left_eye_y=float(feat_left_eye_y),
+                        left_eye_w=float(feat_left_eye_w),
+                        left_eye_h=float(feat_left_eye_h),
+                        right_eye_x=float(feat_right_eye_x),
+                        right_eye_y=float(feat_right_eye_y),
+                        right_eye_w=float(feat_right_eye_w),
+                        right_eye_h=float(feat_right_eye_h),
+                        left_eye_dx=float(feat_left_eye_dx),
+                        left_eye_dy=float(feat_left_eye_dy),
+                        right_eye_dx=float(feat_right_eye_dx),
+                        right_eye_dy=float(feat_right_eye_dy),
+                        sym_dx=float(feat_sym_dx),
+                        sym_dy=float(feat_sym_dy),
+                        yaw=float(feat_yaw),
+                        pitch=float(feat_pitch),
+                        roll=float(feat_roll),
+                        label=int(attention_state),
+                    )
 
-                self._push_sample_to_firestore(
-                    firestore_db,
-                    sample_id=sample_id,
-                    ts=ts,
-                    left_x=left_x,
-                    left_y=left_y,
-                    right_x=right_x,
-                    right_y=right_y,
-                    face_x=float(feat_face_x),
-                    face_y=float(feat_face_y),
-                    face_z=nose_z,
-                    attention_state=int(attention_state),
-                    focus_score=float(focus_score),
-                    face_w=float(feat_face_w),
-                    face_h=float(feat_face_h),
-                    left_eye_x=float(feat_left_eye_x),
-                    left_eye_y=float(feat_left_eye_y),
-                    left_eye_w=float(feat_left_eye_w),
-                    left_eye_h=float(feat_left_eye_h),
-                    right_eye_x=float(feat_right_eye_x),
-                    right_eye_y=float(feat_right_eye_y),
-                    right_eye_w=float(feat_right_eye_w),
-                    right_eye_h=float(feat_right_eye_h),
-                    left_eye_dx=float(feat_left_eye_dx),
-                    left_eye_dy=float(feat_left_eye_dy),
-                    right_eye_dx=float(feat_right_eye_dx),
-                    right_eye_dy=float(feat_right_eye_dy),
-                    sym_dx=float(feat_sym_dx),
-                    sym_dy=float(feat_sym_dy),
-                    yaw=float(feat_yaw),
-                    pitch=float(feat_pitch),
-                    roll=float(feat_roll),
-                    label=int(attention_state),
-                )
-
-                if self.sample_callback:
-                    self.sample_callback(int(attention_state), float(focus_score), ts)
-
-                if self._show_preview:
+                    if self.sample_callback:
+                        self.sample_callback(int(attention_state), float(focus_score), ts)
+                        
                     state_text = "FOCUSED" if int(attention_state) == 1 else "DISTRACTED"
                     color = (0, 200, 0) if int(attention_state) == 1 else (0, 0, 255)
+
+                if self._show_preview or self.frame_callback:
                     cv2.putText(
                         frame,
                         f"State: {state_text}",
@@ -331,12 +341,16 @@ class FocusTrackingWorker:
                         (255, 255, 0),
                         2,
                     )
-                    cv2.imshow(preview_window_name, frame)
+                    
+                    if self.frame_callback:
+                        self.frame_callback(frame)
 
-                    key = cv2.waitKey(1) & 0xFF
-                    if key == ord("q"):
-                        self._show_preview = False
-                        cv2.destroyWindow(preview_window_name)
+                    if self._show_preview:
+                        cv2.imshow(preview_window_name, frame)
+                        key = cv2.waitKey(1) & 0xFF
+                        if key == ord("q"):
+                            self._show_preview = False
+                            cv2.destroyWindow(preview_window_name)
 
                 time.sleep(0.03)
         except Exception as exc:

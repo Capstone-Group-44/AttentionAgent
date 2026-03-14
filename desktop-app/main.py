@@ -10,7 +10,7 @@ from view.settings_view import SettingsView
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("FocusCam")
+        self.setWindowTitle("Screen Gaze")
 
         # MVVM setup
         self.auth_viewmodel = AuthViewModel()
@@ -40,6 +40,9 @@ class MainWindow(QMainWindow):
         # SettingsView signals
         self.settings_view.back_requested.connect(self.show_focus_view)
         self.settings_view.logout_requested.connect(self.handle_logout)
+
+        # Give the focus viewmodel access to settings
+        self.focus_viewmodel.set_settings_view(self.settings_view)
 
         # Auto-login if session exists
         if self.auth_viewmodel.current_user:

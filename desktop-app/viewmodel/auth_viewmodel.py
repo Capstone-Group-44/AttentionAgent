@@ -36,7 +36,7 @@ class AuthViewModel(QObject):
         self._session_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".session.json")
 
         # Web app URLs (env-driven)
-        self._web_app_base_url = os.getenv("WEB_APP_BASE_URL", "http://localhost:3000")
+        self._web_app_base_url = os.getenv("WEB_APP_BASE_URL", "https://attention-agent.vercel.app/")
         self._web_login_path = os.getenv("WEB_APP_LOGIN_PATH", "/login")
         self._web_register_path = os.getenv("WEB_APP_REGISTER_PATH", "/register")
 

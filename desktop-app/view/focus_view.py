@@ -4,7 +4,8 @@ from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect, QSpacerItem, QSizePolicy
 )
 from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QIcon, QColor, QFont
+from PySide6.QtGui import QIcon, QColor, QFont, QImage, QPixmap
+import cv2
 from view.components.circular_progress import CircularProgressWidget
 
 
@@ -72,7 +73,7 @@ class FocusView(QWidget):
 
         header_layout.addLayout(top_row)
 
-        self.status_subtitle = QLabel("Ready to focus")
+        self.status_subtitle = QLabel("Ready to start session")
         self.status_subtitle.setStyleSheet(
             "color: rgba(255,255,255,0.8); font-size: 14px;")
         header_layout.addWidget(self.status_subtitle)
@@ -135,7 +136,7 @@ class FocusView(QWidget):
         right_col.setSpacing(24)
 
         # Start Button
-        self.start_btn = QPushButton("Start Focus Session")
+        self.start_btn = QPushButton("Start Session")
         self.start_btn.setCursor(Qt.PointingHandCursor)
         self.start_btn.setStyleSheet("""
             QPushButton {
@@ -166,7 +167,7 @@ class FocusView(QWidget):
         durations_row.setSpacing(16)
 
         self.duration_input = self.create_stacked_input_card(
-            "Focus (min)", "25")
+            "Session (min)", "25")
         durations_row.addWidget(self.duration_input)
 
         self.short_break_input = self.create_stacked_input_card(
@@ -207,6 +208,7 @@ class FocusView(QWidget):
         # If it's a number, use as text. If not, treat as placeholder text.
         if default_value_or_placeholder.isdigit():
             inp.setText(default_value_or_placeholder)
+            inp.setAlignment(Qt.AlignCenter)
         else:
             inp.setPlaceholderText(default_value_or_placeholder)
 
@@ -250,6 +252,21 @@ class FocusView(QWidget):
         right_col = QVBoxLayout()
         right_col.setAlignment(Qt.AlignTop)
         right_col.setSpacing(24)
+
+        # Camera Feed
+        self.camera_feed_label = QLabel("Camera Output")
+        self.camera_feed_label.setAlignment(Qt.AlignCenter)
+        self.camera_feed_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.camera_feed_label.setStyleSheet("""
+            QLabel {
+                background-color: #050608;
+                border-radius: 12px;
+                border: 1px solid #2A2B35;
+                color: #A0A5B5;
+            }
+        """)
+        self.camera_feed_label.setMinimumSize(400, 300)
+        right_col.addWidget(self.camera_feed_label)
 
         # Action Buttons Layout
         action_btns_layout = QVBoxLayout()
@@ -386,6 +403,7 @@ class FocusView(QWidget):
         self.viewmodel.session_stopped.connect(self.on_session_stopped)
         self.viewmodel.break_started.connect(self.on_break_started)
         self.viewmodel.focus_resumed.connect(self.on_focus_resumed)
+        self.viewmodel.frame_ready.connect(self.update_camera_feed)
 
     def on_start_clicked(self):
         try:
@@ -427,25 +445,49 @@ class FocusView(QWidget):
         self.circular_progress.set_text(time_str)
         self.circular_progress.set_progress(progress)
 
+    def update_camera_feed(self, frame):
+        if self.viewmodel._mode != "focus":
+            return
+            
+        # Frame is BGR numpy array from opencv
+        rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        h, w, ch = rgb_image.shape
+        bytes_per_line = ch * w
+        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(q_img)
+        # Scale pixmap to fit the label while keeping aspect ratio
+        scaled_pixmap = pixmap.scaled(
+            self.camera_feed_label.size(), 
+            Qt.KeepAspectRatio, 
+            Qt.SmoothTransformation
+        )
+        self.camera_feed_label.setPixmap(scaled_pixmap)
+
     def on_session_started(self):
         self.stack.setCurrentWidget(self.running_page)
-        self.status_subtitle.setText("Focus Mode Active")
+        self.status_subtitle.setText("Session Active")
         self.short_break_btn.setEnabled(True)
         self.long_break_btn.setEnabled(True)
         self.circular_progress.set_subtext("Focus")
+        self.camera_feed_label.setText("Waiting for camera...")
 
     def on_session_stopped(self):
         self.stack.setCurrentWidget(self.setup_page)
-        self.status_subtitle.setText("Ready to focus")
+        self.status_subtitle.setText("Ready to start session")
+        self.camera_feed_label.clear()
+        self.camera_feed_label.setText("Camera Output")
 
     def on_break_started(self, break_name):
         self.status_subtitle.setText(f"{break_name} Active")
         self.short_break_btn.setEnabled(False)
         self.long_break_btn.setEnabled(False)
         self.circular_progress.set_subtext("Break")
+        self.camera_feed_label.clear()
+        self.camera_feed_label.setText(f"{break_name} - Camera Paused")
 
     def on_focus_resumed(self):
-        self.status_subtitle.setText("Focus Mode Active")
+        self.status_subtitle.setText("Session Active")
         self.short_break_btn.setEnabled(True)
         self.long_break_btn.setEnabled(True)
         self.circular_progress.set_subtext("Focus")
+        self.camera_feed_label.setText("Resuming camera...")

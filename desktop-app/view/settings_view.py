@@ -1,9 +1,11 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
-    QFrame, QSpacerItem, QSizePolicy
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
+    QFrame, QSpacerItem, QSizePolicy, QLineEdit
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QColor, QFont, QCursor
+
+from services.notification_service import NotificationService
 
 class SettingsView(QWidget):
     back_requested = Signal()
@@ -23,6 +25,9 @@ class SettingsView(QWidget):
             }
         """)
         self.init_ui()
+        self.refresh_user_info()
+        if self.auth_viewmodel:
+            self.auth_viewmodel.login_success.connect(self.refresh_user_info)
 
     def init_ui(self):
         main_layout = QVBoxLayout()
@@ -115,17 +120,9 @@ class SettingsView(QWidget):
         logged_in_label = QLabel("Logged in as")
         logged_in_label.setStyleSheet("color: #8A8DA0; font-size: 15px; font-weight: 500;")
         user_card_layout.addWidget(logged_in_label)
-        
-        if self.auth_viewmodel and self.auth_viewmodel.current_user:
-            user = self.auth_viewmodel.current_user
-            email_label = QLabel(user.email)
-            email_label.setStyleSheet("color: #E0E1E6; font-size: 18px; font-weight: 600;")
-            user_card_layout.addWidget(email_label)
-        else:
-             # Fallback
-            error_label = QLabel("Not logged in")
-            error_label.setStyleSheet("color: #F87171; font-weight: 600;")
-            user_card_layout.addWidget(error_label)
+
+        self.user_info_label = QLabel("")
+        user_card_layout.addWidget(self.user_info_label)
             
         content_layout.addWidget(user_card)
         
@@ -186,10 +183,81 @@ class SettingsView(QWidget):
         notif_title.setStyleSheet("color: #E0E1E6; font-size: 18px; font-weight: 600;") 
         notif_card_layout.addWidget(notif_title)
         
-        notif_subtitle = QLabel("Coming soon")
-        notif_subtitle.setStyleSheet("color: #8A8DA0; font-size: 15px; font-weight: 500;")
-        notif_card_layout.addWidget(notif_subtitle)
+        test_notif_btn = QPushButton("Test Notification")
+        test_notif_btn.setCursor(Qt.PointingHandCursor)
+        test_notif_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3B82F6; 
+                color: #FFFFFF; 
+                font-size: 14px;
+                font-weight: 600;
+                border-radius: 8px; 
+                padding: 10px 16px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #2563EB;
+            }
+            QPushButton:pressed {
+                background-color: #1D4ED8;
+            }
+        """)
+        test_notif_btn.clicked.connect(self._handle_test_notification)
         
+        btn_layout = QHBoxLayout()
+        btn_layout.addWidget(test_notif_btn)
+        btn_layout.addStretch()
+        
+        notif_card_layout.addLayout(btn_layout)
+
+        notif_card_layout.addSpacing(12)
+
+        # --- Distracted Time field ---
+        distracted_label = QLabel("Distracted Time (seconds)")
+        distracted_label.setStyleSheet("color: #8A8DA0; font-size: 14px; font-weight: 500;")
+        notif_card_layout.addWidget(distracted_label)
+
+        self.distracted_time_input = QLineEdit("20")
+        self.distracted_time_input.setPlaceholderText("Min 5")
+        self.distracted_time_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #12131A;
+                color: #E0E1E6;
+                font-size: 14px;
+                border: 1px solid #2A2B35;
+                border-radius: 8px;
+                padding: 10px 12px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #3B82F6;
+            }
+        """)
+        notif_card_layout.addWidget(self.distracted_time_input)
+
+        notif_card_layout.addSpacing(8)
+
+        # --- Frequency of Notifications field ---
+        freq_label = QLabel("Frequency of Notifications (seconds)")
+        freq_label.setStyleSheet("color: #8A8DA0; font-size: 14px; font-weight: 500;")
+        notif_card_layout.addWidget(freq_label)
+
+        self.notif_freq_input = QLineEdit("60")
+        self.notif_freq_input.setPlaceholderText("0 = no cooldown")
+        self.notif_freq_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #12131A;
+                color: #E0E1E6;
+                font-size: 14px;
+                border: 1px solid #2A2B35;
+                border-radius: 8px;
+                padding: 10px 12px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #3B82F6;
+            }
+        """)
+        notif_card_layout.addWidget(self.notif_freq_input)
+
         content_layout.addWidget(notifications_card)
         
         content_layout.addStretch()
@@ -200,7 +268,38 @@ class SettingsView(QWidget):
     def _handle_back(self):
         self.back_requested.emit()
 
+    def refresh_user_info(self, _username=None):
+        """Update the user info label from the current auth state."""
+        if self.auth_viewmodel and self.auth_viewmodel.current_user:
+            self.user_info_label.setText(self.auth_viewmodel.current_user.email)
+            self.user_info_label.setStyleSheet("color: #E0E1E6; font-size: 18px; font-weight: 600;")
+        else:
+            self.user_info_label.setText("Not logged in")
+            self.user_info_label.setStyleSheet("color: #F87171; font-weight: 600;")
+
     def _handle_logout(self):
         if self.auth_viewmodel:
             self.auth_viewmodel.logout()
         self.logout_requested.emit()
+
+    def _handle_test_notification(self):
+        NotificationService.send_notification("Screen Gaze", "User Distracted")
+
+    # ------------------------------------------------------------------
+    # Public accessors for distraction notifier settings
+    # ------------------------------------------------------------------
+    def get_distracted_time_seconds(self) -> int:
+        """Return the distracted-time value (min 5, default 20)."""
+        try:
+            val = int(self.distracted_time_input.text())
+            return max(val, 5)
+        except (ValueError, AttributeError):
+            return 20
+
+    def get_notif_frequency_seconds(self) -> int:
+        """Return the notification-frequency value (min 0, default 60)."""
+        try:
+            val = int(self.notif_freq_input.text())
+            return max(val, 0)
+        except (ValueError, AttributeError):
+            return 60
