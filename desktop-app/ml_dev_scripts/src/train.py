@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 matplotlib.use("Agg")
 
+# Load dataset
 df = pd.read_csv(
     "C:\\Uni Tests, Assignments, Labs\\Capstone Project\\Manual Collection Dataset\\master_dataset.csv"
 )
@@ -29,12 +30,14 @@ feature_cols = [
 target_col = 'label'
 subjects = df['subject_id'].unique()
 
+# Create results folder
 os.makedirs("results", exist_ok=True)
 
 metrics_file = "results/loso_metrics.csv"
 fi_file = "results/feature_importances.csv"
 log_file = "results/training_log.txt"
 
+# Reset log file
 open(log_file, "w").close()
 
 
@@ -68,6 +71,7 @@ for test_subject in subjects:
         random_state=42
     )
 
+    # Compute scale_pos_weight for class imbalance
     n_focused = (y_train_inner == 1).sum()
     n_distracted = (y_train_inner == 0).sum()
     scale_pos_weight = n_focused / n_distracted
@@ -92,6 +96,7 @@ for test_subject in subjects:
 
     evals = [(dtrain, "train"), (dval, "val")]
 
+    # Train model with early stopping
     bst = xgb.train(
         params,
         dtrain,
@@ -103,10 +108,24 @@ for test_subject in subjects:
 
     bst.save_model(f"results/xgb_model_subject_{test_subject}.json")
 
-    # Predict probabilities
-    y_prob = bst.predict(dtest)
-    y_pred = (y_prob > 0.5).astype(int)
+    # --- Threshold Tuning on Validation Set ---
+    y_val_prob = bst.predict(dval)
+    best_f1 = 0
+    best_thresh = 0.5
+    for thresh in np.arange(0.1, 0.91, 0.01):
+        y_val_pred = (y_val_prob > thresh).astype(int)
+        f1 = f1_score(y_val, y_val_pred, pos_label=0, zero_division=0)
+        if f1 > best_f1:
+            best_f1 = f1
+            best_thresh = thresh
+    log(
+        f"Best threshold (max F1 Distracted) on validation: {best_thresh:.2f} (F1={best_f1:.4f})")
 
+    # --- Apply to Test Set ---
+    y_prob = bst.predict(dtest)
+    y_pred = (y_prob > best_thresh).astype(int)
+
+    # Compute metrics
     acc = accuracy_score(y_test, y_pred)
     bal_acc = balanced_accuracy_score(y_test, y_pred)
 
@@ -153,12 +172,12 @@ for test_subject in subjects:
         "TN": cm[0, 0],
         "FP": cm[0, 1],
         "FN": cm[1, 0],
-        "TP": cm[1, 1]
+        "TP": cm[1, 1],
+        "Threshold": best_thresh
     }
-
     all_metrics.append(metrics_row)
 
-    # Save predictions with probabilities
+    # Save predictions
     pred_df = test_df.copy()
     pred_df["prediction"] = y_pred
     pred_df["probability"] = y_prob
@@ -181,22 +200,6 @@ for test_subject in subjects:
     plt.tight_layout()
     plt.savefig(f"results/feature_importance_subject_{test_subject}.png")
     plt.close()
-
-    # Plot ROC curve for threshold tuning
-    fpr, tpr, thresholds = xgb.callback._roc_curve(y_test, y_prob) if hasattr(
-        xgb.callback, '_roc_curve') else (None, None, None)
-    plt.figure(figsize=(6, 6))
-    if fpr is not None:
-        plt.plot(fpr, tpr, label=f"AUC = {auc:.3f}")
-    plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
-    plt.xlabel("False Positive Rate")
-    plt.ylabel("True Positive Rate")
-    plt.title(f"ROC Curve - Subject {test_subject}")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(f"results/roc_subject_{test_subject}.png")
-    plt.close()
-
 
 # Save metrics and feature importances
 metrics_df = pd.DataFrame(all_metrics)
