@@ -1,0 +1,51 @@
+
+===== Testing on Subject 1 =====
+Training set size before SMOTE: 55239
+Training set size after SMOTE: 86662
+Balanced training class ratio (Focused / Distracted): 43331/43331
+Best threshold (max F1 Distracted) on validation: 0.48 (F1=0.9425)
+Confusion Matrix:
+[[5113 3138]
+ [4029 9933]]
+
+===== Testing on Subject 2 =====
+Training set size before SMOTE: 56100
+Training set size after SMOTE: 86708
+Balanced training class ratio (Focused / Distracted): 43354/43354
+Best threshold (max F1 Distracted) on validation: 0.36 (F1=0.9723)
+Confusion Matrix:
+[[ 2292  4875]
+ [  183 13786]]
+
+===== Testing on Subject 3 =====
+Training set size before SMOTE: 54584
+Training set size after SMOTE: 78116
+Balanced training class ratio (Focused / Distracted): 39058/39058
+Best threshold (max F1 Distracted) on validation: 0.52 (F1=0.9507)
+Confusion Matrix:
+[[ 2358  1389]
+ [ 1246 18039]]
+
+===== Testing on Subject 4 =====
+Training set size before SMOTE: 53104
+Training set size after SMOTE: 75394
+Balanced training class ratio (Focused / Distracted): 37697/37697
+Best threshold (max F1 Distracted) on validation: 0.48 (F1=0.9647)
+Confusion Matrix:
+[[ 1966  1924]
+ [ 2320 18671]]
+
+===== FINAL RESULTS =====
+   Test_Subject  Accuracy  Balanced_Accuracy       AUC  Precision_Distracted  Recall_Distracted  ...  F1_Focused    TN    FP    FN     TP  Threshold
+0             1  0.677351           0.665557  0.773211              0.559287           0.619682  ...    0.734880  5113  3138  4029   9933       0.48
+1             2  0.760693           0.653349  0.614659              0.926061           0.319799  ...    0.844989  2292  4875   183  13786       0.36
+2             3  0.885594           0.782347  0.810674              0.654273           0.629303  ...    0.931935  2358  1389  1246  18039       0.52
+3             4  0.829428           0.697437  0.682972              0.458703           0.505398  ...    0.897946  1966  1924  2320  18671       0.48
+
+[4 rows x 15 columns]
+
+Average Accuracy: 0.7883
+Average Balanced Accuracy: 0.6997
+Average AUC: 0.7204
+Average F1 (Distracted): 0.5465
+Average F1 (Focused): 0.8524

@@ -12,8 +12,8 @@ MODEL_PATH = os.path.abspath(os.path.join(
     "..",
     "ml_dev_scripts",
     "docs",
-    "loso_results_3",
-    "xgb_model_subject_2.json"
+    "loso_results_5",
+    "xgb_model_subject_3_smote.json"
 ))
 
 print("Looking for model at:", MODEL_PATH)

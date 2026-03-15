@@ -4,18 +4,19 @@ from sklearn.metrics import (
     classification_report, roc_auc_score
 )
 from sklearn.model_selection import train_test_split
-from imblearn.over_sampling import SMOTE
 import xgboost as xgb
 import os
 import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+from imblearn.combine import SMOTETomek
 
 matplotlib.use("Agg")
 
 df = pd.read_csv(
-    "C:\\Uni Tests, Assignments, Labs\\Capstone Project\\Manual Collection Dataset\\master_dataset.csv")
+    "C:\\Uni Tests, Assignments, Labs\\Capstone Project\\Manual Collection Dataset\\master_dataset.csv"
+)
 
 feature_cols = [
     'face_x', 'face_y', 'face_w', 'face_h',
@@ -30,7 +31,6 @@ target_col = 'label'
 subjects = df['subject_id'].unique()
 
 os.makedirs("results", exist_ok=True)
-
 metrics_file = "results/loso_metrics_smote.csv"
 fi_file = "results/feature_importances_smote.csv"
 log_file = "results/training_log_smote.txt"
@@ -47,10 +47,7 @@ def log(message):
 all_metrics = []
 fi_all = []
 
-smote = SMOTE(sampling_strategy='auto', random_state=42)
-
 for test_subject in subjects:
-
     log(f"\n===== Testing on Subject {test_subject} =====")
 
     train_df = df[df['subject_id'] != test_subject]
@@ -58,7 +55,6 @@ for test_subject in subjects:
 
     X_train = train_df[feature_cols]
     y_train = train_df[target_col]
-
     X_test = test_df[feature_cols]
     y_test = test_df[target_col]
 
@@ -70,19 +66,16 @@ for test_subject in subjects:
         random_state=42
     )
 
-    #  SMOTE Oversampling
-    X_train_bal, y_train_bal = smote.fit_resample(X_train_inner, y_train_inner)
-    log(f"Training set size before SMOTE: {X_train_inner.shape[0]}")
-    log(f"Training set size after SMOTE: {X_train_bal.shape[0]}")
+    # SMOTE + Tomek for class balancing
+    log(f"Training set size before SMOTE: {len(X_train_inner)}")
+    smt = SMOTETomek(random_state=42)
+    X_train_inner_res, y_train_inner_res = smt.fit_resample(
+        X_train_inner, y_train_inner)
+    log(f"Training set size after SMOTE: {len(X_train_inner_res)}")
+    log(f"Balanced training class ratio (Focused / Distracted): "
+        f"{sum(y_train_inner_res==1)}/{sum(y_train_inner_res==0)}")
 
-    n_focused = (y_train_bal == 1).sum()
-    n_distracted = (y_train_bal == 0).sum()
-    scale_pos_weight = n_focused / n_distracted
-    log(
-        f"Balanced training class ratio (Focused / Distracted): {n_focused}/{n_distracted}")
-    log(f"XGBoost scale_pos_weight: {scale_pos_weight:.2f}")
-
-    dtrain = xgb.DMatrix(X_train_bal, label=y_train_bal)
+    dtrain = xgb.DMatrix(X_train_inner_res, label=y_train_inner_res)
     dval = xgb.DMatrix(X_val, label=y_val)
     dtest = xgb.DMatrix(X_test, label=y_test)
 
@@ -94,7 +87,7 @@ for test_subject in subjects:
         "subsample": 0.8,
         "colsample_bytree": 0.8,
         "seed": 42,
-        "scale_pos_weight": 1
+        "scale_pos_weight": 1.0
     }
 
     evals = [(dtrain, "train"), (dval, "val")]
@@ -171,7 +164,6 @@ for test_subject in subjects:
         "Test_Subject": test_subject
     })
     fi_all.append(fi)
-
     plt.figure(figsize=(8, 6))
     xgb.plot_importance(bst, importance_type='weight', height=0.6)
     plt.title(f"Feature Importances - Subject {test_subject}")
@@ -186,10 +178,8 @@ fi_df.to_csv(fi_file, index=False)
 
 log("\n===== FINAL RESULTS =====")
 log(metrics_df)
-
-log("\nAverage Accuracy: " + str(metrics_df["Accuracy"].mean()))
-log("Average Balanced Accuracy: " +
-    str(metrics_df["Balanced_Accuracy"].mean()))
-log("Average AUC: " + str(metrics_df["AUC"].mean()))
-log("Average F1 (Distracted): " + str(metrics_df["F1_Distracted"].mean()))
-log("Average F1 (Focused): " + str(metrics_df["F1_Focused"].mean()))
+log(f"\nAverage Accuracy: {metrics_df['Accuracy'].mean():.4f}")
+log(f"Average Balanced Accuracy: {metrics_df['Balanced_Accuracy'].mean():.4f}")
+log(f"Average AUC: {metrics_df['AUC'].mean():.4f}")
+log(f"Average F1 (Distracted): {metrics_df['F1_Distracted'].mean():.4f}")
+log(f"Average F1 (Focused): {metrics_df['F1_Focused'].mean():.4f}")
