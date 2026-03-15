@@ -4,6 +4,7 @@ from sklearn.metrics import (
     classification_report, roc_auc_score
 )
 from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
 import xgboost as xgb
 import os
 import numpy as np
@@ -13,10 +14,8 @@ import matplotlib.pyplot as plt
 
 matplotlib.use("Agg")
 
-# Load dataset
 df = pd.read_csv(
-    "C:\\Uni Tests, Assignments, Labs\\Capstone Project\\Manual Collection Dataset\\master_dataset.csv"
-)
+    "C:\\Uni Tests, Assignments, Labs\\Capstone Project\\Manual Collection Dataset\\master_dataset.csv")
 
 feature_cols = [
     'face_x', 'face_y', 'face_w', 'face_h',
@@ -30,14 +29,12 @@ feature_cols = [
 target_col = 'label'
 subjects = df['subject_id'].unique()
 
-# Create results folder
 os.makedirs("results", exist_ok=True)
 
-metrics_file = "results/loso_metrics.csv"
-fi_file = "results/feature_importances.csv"
-log_file = "results/training_log.txt"
+metrics_file = "results/loso_metrics_smote.csv"
+fi_file = "results/feature_importances_smote.csv"
+log_file = "results/training_log_smote.txt"
 
-# Reset log file
 open(log_file, "w").close()
 
 
@@ -49,6 +46,8 @@ def log(message):
 
 all_metrics = []
 fi_all = []
+
+smote = SMOTE(sampling_strategy='auto', random_state=42)
 
 for test_subject in subjects:
 
@@ -71,15 +70,19 @@ for test_subject in subjects:
         random_state=42
     )
 
-    # Compute scale_pos_weight for class imbalance
-    n_focused = (y_train_inner == 1).sum()
-    n_distracted = (y_train_inner == 0).sum()
-    scale_pos_weight = n_focused / n_distracted
+    #  SMOTE Oversampling
+    X_train_bal, y_train_bal = smote.fit_resample(X_train_inner, y_train_inner)
+    log(f"Training set size before SMOTE: {X_train_inner.shape[0]}")
+    log(f"Training set size after SMOTE: {X_train_bal.shape[0]}")
 
-    log(f"Class ratio (Focused / Distracted): {n_focused}/{n_distracted}")
+    n_focused = (y_train_bal == 1).sum()
+    n_distracted = (y_train_bal == 0).sum()
+    scale_pos_weight = n_focused / n_distracted
+    log(
+        f"Balanced training class ratio (Focused / Distracted): {n_focused}/{n_distracted}")
     log(f"XGBoost scale_pos_weight: {scale_pos_weight:.2f}")
 
-    dtrain = xgb.DMatrix(X_train_inner, label=y_train_inner)
+    dtrain = xgb.DMatrix(X_train_bal, label=y_train_bal)
     dval = xgb.DMatrix(X_val, label=y_val)
     dtest = xgb.DMatrix(X_test, label=y_test)
 
@@ -91,12 +94,11 @@ for test_subject in subjects:
         "subsample": 0.8,
         "colsample_bytree": 0.8,
         "seed": 42,
-        "scale_pos_weight": scale_pos_weight
+        "scale_pos_weight": 1
     }
 
     evals = [(dtrain, "train"), (dval, "val")]
 
-    # Train model with early stopping
     bst = xgb.train(
         params,
         dtrain,
@@ -106,9 +108,8 @@ for test_subject in subjects:
         verbose_eval=True
     )
 
-    bst.save_model(f"results/xgb_model_subject_{test_subject}.json")
+    bst.save_model(f"results/xgb_model_subject_{test_subject}_smote.json")
 
-    # --- Threshold Tuning on Validation Set ---
     y_val_prob = bst.predict(dval)
     best_f1 = 0
     best_thresh = 0.5
@@ -121,42 +122,22 @@ for test_subject in subjects:
     log(
         f"Best threshold (max F1 Distracted) on validation: {best_thresh:.2f} (F1={best_f1:.4f})")
 
-    # --- Apply to Test Set ---
     y_prob = bst.predict(dtest)
     y_pred = (y_prob > best_thresh).astype(int)
 
-    # Compute metrics
     acc = accuracy_score(y_test, y_pred)
     bal_acc = balanced_accuracy_score(y_test, y_pred)
-
     precision_d = precision_score(y_test, y_pred, pos_label=0, zero_division=0)
     recall_d = recall_score(y_test, y_pred, pos_label=0, zero_division=0)
     f1_d = f1_score(y_test, y_pred, pos_label=0, zero_division=0)
-
     precision_f = precision_score(y_test, y_pred, pos_label=1, zero_division=0)
     recall_f = recall_score(y_test, y_pred, pos_label=1, zero_division=0)
     f1_f = f1_score(y_test, y_pred, pos_label=1, zero_division=0)
-
     auc = roc_auc_score(y_test, y_prob)
-
     cm = confusion_matrix(y_test, y_pred)
 
     log("Confusion Matrix:")
     log(cm)
-
-    report = classification_report(y_test, y_pred)
-    log("\nClassification Report:")
-    log(report)
-
-    log(f"Accuracy: {acc:.4f}")
-    log(f"Balanced Accuracy: {bal_acc:.4f}")
-    log(f"AUC: {auc:.4f}")
-    log(f"Precision (Distracted): {precision_d:.4f}")
-    log(f"Recall (Distracted): {recall_d:.4f}")
-    log(f"F1 (Distracted): {f1_d:.4f}")
-    log(f"Precision (Focused): {precision_f:.4f}")
-    log(f"Recall (Focused): {recall_f:.4f}")
-    log(f"F1 (Focused): {f1_f:.4f}")
 
     metrics_row = {
         "Test_Subject": test_subject,
@@ -177,14 +158,12 @@ for test_subject in subjects:
     }
     all_metrics.append(metrics_row)
 
-    # Save predictions
     pred_df = test_df.copy()
     pred_df["prediction"] = y_pred
     pred_df["probability"] = y_prob
     pred_df.to_csv(
-        f"results/predictions_subject_{test_subject}.csv", index=False)
+        f"results/predictions_subject_{test_subject}_smote.csv", index=False)
 
-    # Feature importance
     score_dict = bst.get_score(importance_type='weight')
     fi = pd.DataFrame({
         "Feature": feature_cols,
@@ -193,18 +172,15 @@ for test_subject in subjects:
     })
     fi_all.append(fi)
 
-    # Plot feature importance
     plt.figure(figsize=(8, 6))
     xgb.plot_importance(bst, importance_type='weight', height=0.6)
     plt.title(f"Feature Importances - Subject {test_subject}")
     plt.tight_layout()
-    plt.savefig(f"results/feature_importance_subject_{test_subject}.png")
+    plt.savefig(f"results/feature_importance_subject_{test_subject}_smote.png")
     plt.close()
 
-# Save metrics and feature importances
 metrics_df = pd.DataFrame(all_metrics)
 metrics_df.to_csv(metrics_file, index=False)
-
 fi_df = pd.concat(fi_all, ignore_index=True)
 fi_df.to_csv(fi_file, index=False)
 
