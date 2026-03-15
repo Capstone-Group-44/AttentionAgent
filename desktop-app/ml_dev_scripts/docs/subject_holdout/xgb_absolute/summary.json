@@ -1,0 +1,30 @@
+{
+  "model_type": "xgb",
+  "feature_set": "absolute",
+  "dataset_path": "C:\\University\\Capstone\\AttentionAgent\\desktop-app\\RF\\data\\master_dataset.csv",
+  "subjects": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "feature_columns": [
+    "face_x",
+    "face_y",
+    "face_w",
+    "face_h",
+    "left_eye_x",
+    "left_eye_y",
+    "left_eye_w",
+    "left_eye_h",
+    "right_eye_x",
+    "right_eye_y",
+    "right_eye_w",
+    "right_eye_h"
+  ],
+  "fold_count": 4,
+  "mean_accuracy": 0.7885731212771347,
+  "mean_precision": 0.8364582677573132,
+  "mean_recall": 0.8910622521799982,
+  "mean_f1": 0.8576832733716668
+}
