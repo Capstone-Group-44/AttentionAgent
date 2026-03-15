@@ -1,4 +1,13 @@
+import multiprocessing
 import sys
+import os
+
+# Ensure paths module is importable when frozen
+from paths import resource_path
+
+from dotenv import load_dotenv
+load_dotenv(resource_path(".env"))
+
 from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from view.auth_view import AuthView
 from viewmodel.auth_viewmodel import AuthViewModel
@@ -61,6 +70,7 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    multiprocessing.freeze_support()
     app = QApplication(sys.argv)
 
     window = MainWindow()

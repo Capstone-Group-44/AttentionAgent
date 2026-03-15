@@ -1,10 +1,11 @@
 import sqlite3
 import os
 
+from paths import get_data_dir, resource_path
+
 class Database:
     def __init__(self):
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.db_path = os.path.join(base_dir, "focuscam.sqlite3")
+        self.db_path = os.path.join(get_data_dir(), "focuscam.sqlite3")
         self._initialize()
 
     def connect(self):
@@ -16,7 +17,7 @@ class Database:
         conn = self.connect()
         cursor = conn.cursor()
 
-        schema_path = os.path.join(os.path.dirname(__file__), "schema.sql")
+        schema_path = resource_path(os.path.join("db", "schema.sql"))
         with open(schema_path, "r") as f:
             cursor.executescript(f.read())
 

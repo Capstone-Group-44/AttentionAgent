@@ -4,6 +4,8 @@ from PySide6.QtWidgets import (QWidget, QPushButton, QLabel, QHBoxLayout,
 from PySide6.QtCore import Slot, Qt, QSize
 from PySide6.QtGui import QIcon, QFont
 
+from paths import resource_path
+
 class AuthView(QWidget):
     def __init__(self, viewmodel):
         super().__init__()
@@ -39,8 +41,7 @@ class AuthView(QWidget):
         main_layout.addSpacing(40)
         
         # Paths to icons
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        icons_dir = os.path.join(base_dir, "assets", "icons")
+        icons_dir = resource_path(os.path.join("assets", "icons"))
         
         # Buttons Layout
         btn_layout = QVBoxLayout()

@@ -11,6 +11,7 @@ from firebase_admin import firestore
 
 from db.focus_sample_repository import FocusSampleRepository
 from ml_runner_scripts.FocusPredictor import FocusPredictor
+from paths import resource_path
 
 
 class FocusTrackingWorker:
@@ -33,18 +34,16 @@ class FocusTrackingWorker:
 
         self._sample_repo = FocusSampleRepository()
 
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self._model_path = os.getenv(
             "FOCUS_MODEL_PATH",
-            os.path.join(base_dir, "ml_dev_scripts", "models", "xgb_model_subject_3.json"),
+            resource_path(os.path.join("ml_dev_scripts", "models", "xgb_model_subject_3.json")),
         )
         self._firebase_key_path = os.getenv(
             "FIREBASE_KEY_PATH",
-            os.path.join(
-                base_dir,
+            resource_path(os.path.join(
                 "keys",
                 "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json",
-            ),
+            )),
         )
         self._firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "attention-agent-30bd0")
         self._show_preview = os.getenv("FOCUS_SHOW_PREVIEW", "0").strip() not in {"0", "false", "False"}

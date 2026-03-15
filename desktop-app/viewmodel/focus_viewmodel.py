@@ -16,6 +16,7 @@ from services.distraction_notifier_worker import DistractionNotifierWorker
 from services.focus_tracking_worker import FocusTrackingWorker
 from services.notification_service import NotificationService
 from scripts import build_reports
+from paths import resource_path
 
 
 class FocusViewModel(QObject):
@@ -206,14 +207,12 @@ class FocusViewModel(QObject):
         return None
 
     def _init_firestore(self):
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         key_path = os.getenv(
             "FIREBASE_KEY_PATH",
-            os.path.join(
-                base_dir,
+            resource_path(os.path.join(
                 "keys",
                 "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json",
-            ),
+            )),
         )
         project_id = os.getenv("FIREBASE_PROJECT_ID", "attention-agent-30bd0")
         if not os.path.exists(key_path):
@@ -269,15 +268,12 @@ class FocusViewModel(QObject):
         def _run():
             try:
                 db_path = self._session_repo.db.db_path
-                base_dir = os.path.dirname(
-                    os.path.dirname(os.path.abspath(__file__)))
                 key_path = os.getenv(
                     "FIREBASE_KEY_PATH",
-                    os.path.join(
-                        base_dir,
+                    resource_path(os.path.join(
                         "keys",
                         "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json",
-                    ),
+                    )),
                 )
                 project_id = os.getenv(
                     "FIREBASE_PROJECT_ID", "attention-agent-30bd0")
