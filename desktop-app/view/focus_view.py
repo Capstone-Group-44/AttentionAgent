@@ -337,55 +337,13 @@ class FocusView(QWidget):
 
         right_col.addLayout(action_btns_layout)
 
-        # Stats
-        stats_container = QFrame()
-        stats_container.setStyleSheet("""
-            .QFrame {
-                background-color: #1A1B23; 
-                border-radius: 12px; 
-                border: 1px solid #2A2B35;
-            }
-        """)
-        stats_layout = QHBoxLayout(stats_container)
-        stats_layout.setContentsMargins(20, 20, 20, 20)
-
-        self.completed_label = QLabel("0 sessions")
-        self.completed_label.setAlignment(Qt.AlignCenter)
-        stats_layout.addWidget(
-            self.create_stat_item("Completed", "0 sessions"))
-
-        stats_layout.addWidget(self.create_vertical_line())
-
-        self.progress_label = QLabel("0%")
-        stats_layout.addWidget(self.create_stat_item("Progress", "0%"))
-
-        right_col.addWidget(stats_container)
+        right_col.addLayout(action_btns_layout)
 
         layout.addLayout(right_col, stretch=1)
 
         page.setLayout(layout)
         return page
 
-    def create_stat_item(self, title, value):
-        container = QWidget()
-        l = QVBoxLayout(container)
-        t = QLabel(title)
-        t.setStyleSheet("color: #B0B0B0; font-size: 12px;")
-        t.setAlignment(Qt.AlignCenter)
-        v = QLabel(value)
-        v.setStyleSheet("color: white; font-size: 16px; font-weight: bold;")
-        v.setAlignment(Qt.AlignCenter)
-        l.addWidget(t)
-        l.addWidget(v)
-        return container
-
-    def create_vertical_line(self):
-        line = QFrame()
-        line.setFrameShape(QFrame.VLine)
-        line.setFrameShadow(QFrame.Sunken)
-        line.setStyleSheet("border: none; background-color: #2A2B35;")
-        line.setMaximumWidth(1)
-        return line
 
     def setup_connections(self):
         self.start_btn.clicked.connect(self.on_start_clicked)
