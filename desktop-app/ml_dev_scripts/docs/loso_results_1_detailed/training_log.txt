@@ -1,0 +1,115 @@
+
+===== Testing on Subject 1 =====
+Confusion Matrix:
+[[ 4908  3343]
+ [ 2586 11376]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.65      0.59      0.62      8251
+           1       0.77      0.81      0.79     13962
+
+    accuracy                           0.73     22213
+   macro avg       0.71      0.70      0.71     22213
+weighted avg       0.73      0.73      0.73     22213
+
+Accuracy: 0.7331
+Balanced Accuracy: 0.7048
+AUC: 0.7737
+Precision (Distracted): 0.6549
+Recall (Distracted): 0.5948
+F1 (Distracted): 0.6234
+Precision (Focused): 0.7729
+Recall (Focused): 0.8148
+F1 (Focused): 0.7933
+
+===== Testing on Subject 2 =====
+Confusion Matrix:
+[[ 2210  4957]
+ [  123 13846]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.95      0.31      0.47      7167
+           1       0.74      0.99      0.84     13969
+
+    accuracy                           0.76     21136
+   macro avg       0.84      0.65      0.66     21136
+weighted avg       0.81      0.76      0.72     21136
+
+Accuracy: 0.7597
+Balanced Accuracy: 0.6498
+AUC: 0.6154
+Precision (Distracted): 0.9473
+Recall (Distracted): 0.3084
+F1 (Distracted): 0.4653
+Precision (Focused): 0.7364
+Recall (Focused): 0.9912
+F1 (Focused): 0.8450
+
+===== Testing on Subject 3 =====
+Confusion Matrix:
+[[ 2310  1437]
+ [  929 18356]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.71      0.62      0.66      3747
+           1       0.93      0.95      0.94     19285
+
+    accuracy                           0.90     23032
+   macro avg       0.82      0.78      0.80     23032
+weighted avg       0.89      0.90      0.89     23032
+
+Accuracy: 0.8973
+Balanced Accuracy: 0.7842
+AUC: 0.8133
+Precision (Distracted): 0.7132
+Recall (Distracted): 0.6165
+F1 (Distracted): 0.6613
+Precision (Focused): 0.9274
+Recall (Focused): 0.9518
+F1 (Focused): 0.9395
+
+===== Testing on Subject 4 =====
+Confusion Matrix:
+[[ 2041  1849]
+ [ 2174 18817]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.48      0.52      0.50      3890
+           1       0.91      0.90      0.90     20991
+
+    accuracy                           0.84     24881
+   macro avg       0.70      0.71      0.70     24881
+weighted avg       0.84      0.84      0.84     24881
+
+Accuracy: 0.8383
+Balanced Accuracy: 0.7106
+AUC: 0.7191
+Precision (Distracted): 0.4842
+Recall (Distracted): 0.5247
+F1 (Distracted): 0.5036
+Precision (Focused): 0.9105
+Recall (Focused): 0.8964
+F1 (Focused): 0.9034
+
+===== FINAL RESULTS =====
+   Test_Subject  Accuracy  Balanced_Accuracy       AUC  Precision_Distracted  Recall_Distracted  ...  Recall_Focused  F1_Focused    TN    FP    FN     TP
+0             1  0.733084           0.704810  0.773725              0.654924           0.594837  ...        0.814783    0.793278  4908  3343  2586  11376
+1             2  0.759652           0.649776  0.615432              0.947278           0.308358  ...        0.991195    0.844990  2210  4957   123  13846
+2             3  0.897273           0.784161  0.813251              0.713183           0.616493  ...        0.951828    0.939454  2310  1437   929  18356
+3             4  0.838310           0.710555  0.719096              0.484223           0.524679  ...        0.896432    0.903426  2041  1849  2174  18817
+
+[4 rows x 14 columns]
+
+Average Accuracy: 0.8070799312541652
+Average Balanced Accuracy: 0.7123255023095026
+Average AUC: 0.7303757517597445
+Average F1 (Distracted): 0.5634153857950336
+Average F1 (Focused): 0.8702868560567548
