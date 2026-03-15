@@ -1,82 +1,68 @@
-venv 
-__pycache__
-.venv311
-.venv
-
-__pycache__
+# --- Python / Environment ---
+__pycache__/
+*.py[cod]
+*$py.class
 venv/
+.venv/
+.venv311/
+.venv_win/
+.pytest_cache/
+tests/.pytest_cache/
+desktop-app/tests/.pytest_cache/
 
-# Data 
+# --- Data & Config ---
 data/
 *.csv
-
 .env
-
-# Database
+.env*
+! .env.example
 *.sqlite3
+desktop-app/keys/
+
+# --- OS Specific ---
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# WEB APP
+# --- IDEs / Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.antigravity/
 
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
+# --- Web App (Next.js/Node) ---
+node_modules/
+.next/
+out/
+coverage/
+.pnp/
 .pnp.*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-
-# Secrets
-desktop-app/keys
-
-# Runtime / local state
+# --- Desktop App (Electron/PyInstaller/Python) ---
+desktop-app/build/
+desktop-app/dist/
+desktop-app/*.spec
+!desktop-app/ScreenGaze.spec
+desktop-app/pyinstaller_log.txt
+*.iconset/
 .session.json
 .sync_state.json
-
-# Desktop app generated state
 desktop-app/db/.sync_state.json
 desktop-app/.session.json
 
-# PyInstaller / macOS Packaging
-desktop-app/build/
-desktop-app/dist/
-*.iconset/
-
-# Tests
-.pytest_cache/
-tests/.pytest_cache/
+# Logs
+*.log

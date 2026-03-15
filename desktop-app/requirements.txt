@@ -12,3 +12,4 @@ python-dotenv
 pytest
 pytest-qt
 firebase-admin
+Pillow

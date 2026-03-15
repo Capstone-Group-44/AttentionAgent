@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec file for Screen Gaze – macOS .app bundle.
+PyInstaller spec file for Screen Gaze – Cross-platform (macOS/Windows).
 
 Run with:
     pyinstaller ScreenGaze.spec
@@ -13,21 +13,38 @@ from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
 block_cipher = None
 
+# Identify Platform
+IS_MAC = sys.platform == 'darwin'
+IS_WIN = sys.platform == 'win32'
+
 # ── project root (directory that contains this .spec file) ───────────
 ROOT = SPECPATH
 
 # ── Locate site-packages ─────────────────────────────────────────────
-import site as _site
-_sp = os.path.join(
-    os.path.dirname(ROOT),  # AttentionAgent/
-    '.venv311', 'lib', 'python3.11', 'site-packages'
-)
+# We try to dynamically find the site-packages directory
+_sp = None
+try:
+    import xgboost
+    _sp = os.path.dirname(os.path.dirname(xgboost.__file__))
+except (ImportError, AttributeError):
+    # Fallback to searching common patterns
+    possible_paths = [
+        os.path.join(os.path.dirname(ROOT), '.venv_win', 'Lib', 'site-packages'),
+        os.path.join(os.path.dirname(ROOT), '.venv311', 'Lib', 'site-packages'),
+        os.path.join(os.path.dirname(ROOT), '.venv311', 'lib', 'python3.11', 'site-packages'),
+    ]
+    for p in possible_paths:
+        if os.path.exists(p):
+            _sp = p
+            break
+
+if not _sp:
+    # Final fallback or error
+    _sp = os.path.join(os.path.dirname(ROOT), '.venv_win', 'Lib', 'site-packages')
 
 # ── data files to bundle ─────────────────────────────────────────────
 # (source_path, dest_folder_inside_bundle)
 datas = [
-    # .env config
-    (os.path.join(ROOT, '.env'), '.'),
     # SVG icons
     (os.path.join(ROOT, 'assets', 'icons'), os.path.join('assets', 'icons')),
     # DB schema
@@ -36,11 +53,22 @@ datas = [
     (os.path.join(ROOT, 'ml_dev_scripts', 'models'), os.path.join('ml_dev_scripts', 'models')),
 ]
 
+# .env config (optional)
+env_path = os.path.join(ROOT, '.env')
+if os.path.exists(env_path):
+    datas.append((env_path, '.'))
+
 # Collect mediapipe data files (tflite models, binarypb configs)
-datas += collect_data_files('mediapipe')
+try:
+    datas += collect_data_files('mediapipe')
+except Exception:
+    pass
 
 # Collect xgboost data files (VERSION file needed at import time)
-datas += collect_data_files('xgboost')
+try:
+    datas += collect_data_files('xgboost')
+except Exception:
+    pass
 
 # Optional: include Firebase key if present
 firebase_key_dir = os.path.join(ROOT, 'keys')
@@ -48,16 +76,23 @@ if os.path.isdir(firebase_key_dir):
     datas.append((firebase_key_dir, 'keys'))
 
 # ── binary libraries ─────────────────────────────────────────────────
-binaries = [
-    # XGBoost native library — must be at xgboost/lib/libxgboost.dylib
-    (
-        os.path.join(_sp, 'xgboost', 'lib', 'libxgboost.dylib'),
-        os.path.join('xgboost', 'lib'),
-    ),
-]
+xgboost_lib_name = 'libxgboost.dylib' if IS_MAC else 'xgboost.dll'
+icon_file = 'app_icon.icns' if IS_MAC else 'app_icon.ico'
+
+binaries = []
+
+# Explicitly add XGBoost native library if found
+if _sp:
+    xgboost_lib_path = os.path.join(_sp, 'xgboost', 'lib', xgboost_lib_name)
+    if os.path.exists(xgboost_lib_path):
+        binaries.append((xgboost_lib_path, os.path.join('xgboost', 'lib')))
+
 # Also collect any dynamic libs that xgboost and mediapipe ship
-binaries += collect_dynamic_libs('xgboost')
-binaries += collect_dynamic_libs('mediapipe')
+try:
+    binaries += collect_dynamic_libs('xgboost')
+    binaries += collect_dynamic_libs('mediapipe')
+except Exception:
+    pass
 
 # ── hidden imports ───────────────────────────────────────────────────
 hiddenimports = [
@@ -155,7 +190,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join(ROOT, 'assets', 'app_icon.icns'),
+    icon=os.path.join(ROOT, 'assets', icon_file),
 )
 
 coll = COLLECT(
@@ -168,17 +203,19 @@ coll = COLLECT(
     name='ScreenGaze',
 )
 
-app = BUNDLE(
-    coll,
-    name='Screen Gaze.app',
-    icon=os.path.join(ROOT, 'assets', 'app_icon.icns'),
-    bundle_identifier='com.screengaze.app',
-    info_plist={
-        'CFBundleDisplayName': 'Screen Gaze',
-        'CFBundleShortVersionString': '1.0.0',
-        'CFBundleVersion': '1.0.0',
-        'NSHighResolutionCapable': True,
-        'NSCameraUsageDescription': 'Screen Gaze needs camera access to track your gaze and measure focus.',
-        'LSMinimumSystemVersion': '11.0',
-    },
-)
+if IS_MAC:
+    app = BUNDLE(
+        coll,
+        name='Screen Gaze.app',
+        icon=os.path.join(ROOT, 'assets', 'app_icon.icns'),
+        bundle_identifier='com.screengaze.app',
+        info_plist={
+            'CFBundleDisplayName': 'Screen Gaze',
+            'CFBundleShortVersionString': '1.0.0',
+            'CFBundleVersion': '1.0.0',
+            'NSHighResolutionCapable': True,
+            'NSCameraUsageDescription': 'Screen Gaze needs camera access to track your gaze and measure focus.',
+            'LSMinimumSystemVersion': '11.0',
+        },
+    )
+

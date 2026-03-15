@@ -34,7 +34,12 @@ def get_data_dir() -> str:
     The directory is created automatically if it does not exist.
     """
     if getattr(sys, "frozen", False):
-        base = os.path.expanduser("~/Library/Application Support/ScreenGaze")
+        if sys.platform == 'darwin':
+            base = os.path.expanduser("~/Library/Application Support/ScreenGaze")
+        elif sys.platform == 'win32':
+            base = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'ScreenGaze')
+        else:
+            base = os.path.expanduser("~/.screengaze")
     else:
         base = get_bundle_dir()
     os.makedirs(base, exist_ok=True)
