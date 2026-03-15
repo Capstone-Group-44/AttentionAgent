@@ -18,13 +18,61 @@ df = pd.read_csv(
     "C:\\Uni Tests, Assignments, Labs\\Capstone Project\\Manual Collection Dataset\\master_dataset.csv"
 )
 
+df = df.sort_values(["subject_id"]).reset_index(drop=True)
+
+# TEMPORAL FEATURE ENGINEERING
+# Head movement velocity
+df["yaw_vel"] = df.groupby("subject_id")["yaw"].diff().fillna(0)
+df["pitch_vel"] = df.groupby("subject_id")["pitch"].diff().fillna(0)
+df["roll_vel"] = df.groupby("subject_id")["roll"].diff().fillna(0)
+
+# Eye motion magnitude
+df["left_eye_motion"] = np.sqrt(df["left_eye_dx"]**2 + df["left_eye_dy"]**2)
+df["right_eye_motion"] = np.sqrt(df["right_eye_dx"]**2 + df["right_eye_dy"]**2)
+
+# Short temporal stability (rolling window)
+df["yaw_std_5"] = (
+    df.groupby("subject_id")["yaw"]
+    .rolling(5)
+    .std()
+    .reset_index(level=0, drop=True)
+    .fillna(0)
+)
+
+df["pitch_std_5"] = (
+    df.groupby("subject_id")["pitch"]
+    .rolling(5)
+    .std()
+    .reset_index(level=0, drop=True)
+    .fillna(0)
+)
+
+df["eye_motion_mean_5"] = (
+    df.groupby("subject_id")["left_eye_motion"]
+    .rolling(5)
+    .mean()
+    .reset_index(level=0, drop=True)
+    .fillna(0)
+)
+
 feature_cols = [
     'face_x', 'face_y', 'face_w', 'face_h',
+
     'left_eye_x', 'left_eye_y', 'left_eye_w', 'left_eye_h',
     'right_eye_x', 'right_eye_y', 'right_eye_w', 'right_eye_h',
+
     'left_eye_dx', 'left_eye_dy',
-    'right_eye_dx', 'right_eye_dy', 'sym_dx', 'sym_dy',
-    'yaw', 'pitch', 'roll'
+    'right_eye_dx', 'right_eye_dy',
+
+    'sym_dx', 'sym_dy',
+
+    'yaw', 'pitch', 'roll',
+
+    # TEMPORAL FEATURES
+    'yaw_vel', 'pitch_vel', 'roll_vel',
+    'left_eye_motion', 'right_eye_motion',
+    'yaw_std_5', 'pitch_std_5',
+    'eye_motion_mean_5'
 ]
 
 target_col = 'label'
@@ -49,6 +97,7 @@ all_metrics = []
 fi_all = []
 
 for test_subject in subjects:
+
     log(f"\n===== Testing on Subject {test_subject} =====")
 
     train_df = df[df['subject_id'] != test_subject]
@@ -56,6 +105,7 @@ for test_subject in subjects:
 
     X_train = train_df[feature_cols]
     y_train = train_df[target_col]
+
     X_test = test_df[feature_cols]
     y_test = test_df[target_col]
 
@@ -68,18 +118,20 @@ for test_subject in subjects:
     )
 
     log(f"Training set size before SMOTE: {len(X_train_inner)}")
+
     smt = SMOTETomek(random_state=42)
+
     X_train_inner_res, y_train_inner_res = smt.fit_resample(
         X_train_inner, y_train_inner
     )
 
     log(f"Training set size after SMOTE: {len(X_train_inner_res)}")
+
     log(
         f"Balanced training class ratio (Focused / Distracted): "
         f"{sum(y_train_inner_res==1)}/{sum(y_train_inner_res==0)}"
     )
 
-    # HYPERPARAMETER TUNING
     param_grid = {
         "max_depth": [3, 4, 5],
         "learning_rate": [0.01, 0.03, 0.05],
@@ -119,14 +171,17 @@ for test_subject in subjects:
         f"results/xgb_model_subject_{test_subject}_tuned.json"
     )
 
-    # THRESHOLD OPTIMIZATION
     y_val_prob = best_model.predict_proba(X_val)[:, 1]
 
     best_f1 = 0
     best_thresh = 0.5
+
     for thresh in np.arange(0.1, 0.91, 0.01):
+
         y_val_pred = (y_val_prob > thresh).astype(int)
+
         f1 = f1_score(y_val, y_val_pred, pos_label=0, zero_division=0)
+
         if f1 > best_f1:
             best_f1 = f1
             best_thresh = thresh
@@ -137,6 +192,7 @@ for test_subject in subjects:
     )
 
     y_prob = best_model.predict_proba(X_test)[:, 1]
+
     y_pred = (y_prob > best_thresh).astype(int)
 
     acc = accuracy_score(y_test, y_pred)
@@ -178,6 +234,7 @@ for test_subject in subjects:
     all_metrics.append(metrics_row)
 
     pred_df = test_df.copy()
+
     pred_df["prediction"] = y_pred
     pred_df["probability"] = y_prob
 
