@@ -35,7 +35,6 @@ metrics_file = "results/loso_metrics.csv"
 fi_file = "results/feature_importances.csv"
 log_file = "results/training_log.txt"
 
-# Reset log file
 open(log_file, "w").close()
 
 
@@ -69,6 +68,13 @@ for test_subject in subjects:
         random_state=42
     )
 
+    n_focused = (y_train_inner == 1).sum()
+    n_distracted = (y_train_inner == 0).sum()
+    scale_pos_weight = n_focused / n_distracted
+
+    log(f"Class ratio (Focused / Distracted): {n_focused}/{n_distracted}")
+    log(f"XGBoost scale_pos_weight: {scale_pos_weight:.2f}")
+
     dtrain = xgb.DMatrix(X_train_inner, label=y_train_inner)
     dval = xgb.DMatrix(X_val, label=y_val)
     dtest = xgb.DMatrix(X_test, label=y_test)
@@ -80,7 +86,8 @@ for test_subject in subjects:
         "learning_rate": 0.05,
         "subsample": 0.8,
         "colsample_bytree": 0.8,
-        "seed": 42
+        "seed": 42,
+        "scale_pos_weight": scale_pos_weight
     }
 
     evals = [(dtrain, "train"), (dval, "val")]
@@ -96,6 +103,7 @@ for test_subject in subjects:
 
     bst.save_model(f"results/xgb_model_subject_{test_subject}.json")
 
+    # Predict probabilities
     y_prob = bst.predict(dtest)
     y_pred = (y_prob > 0.5).astype(int)
 
@@ -118,7 +126,6 @@ for test_subject in subjects:
     log(cm)
 
     report = classification_report(y_test, y_pred)
-
     log("\nClassification Report:")
     log(report)
 
@@ -151,22 +158,23 @@ for test_subject in subjects:
 
     all_metrics.append(metrics_row)
 
+    # Save predictions with probabilities
     pred_df = test_df.copy()
     pred_df["prediction"] = y_pred
     pred_df["probability"] = y_prob
     pred_df.to_csv(
         f"results/predictions_subject_{test_subject}.csv", index=False)
 
+    # Feature importance
     score_dict = bst.get_score(importance_type='weight')
-
     fi = pd.DataFrame({
         "Feature": feature_cols,
         "Importance": [score_dict.get(f, 0) for f in feature_cols],
         "Test_Subject": test_subject
     })
-
     fi_all.append(fi)
 
+    # Plot feature importance
     plt.figure(figsize=(8, 6))
     xgb.plot_importance(bst, importance_type='weight', height=0.6)
     plt.title(f"Feature Importances - Subject {test_subject}")
@@ -174,6 +182,23 @@ for test_subject in subjects:
     plt.savefig(f"results/feature_importance_subject_{test_subject}.png")
     plt.close()
 
+    # Plot ROC curve for threshold tuning
+    fpr, tpr, thresholds = xgb.callback._roc_curve(y_test, y_prob) if hasattr(
+        xgb.callback, '_roc_curve') else (None, None, None)
+    plt.figure(figsize=(6, 6))
+    if fpr is not None:
+        plt.plot(fpr, tpr, label=f"AUC = {auc:.3f}")
+    plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title(f"ROC Curve - Subject {test_subject}")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f"results/roc_subject_{test_subject}.png")
+    plt.close()
+
+
+# Save metrics and feature importances
 metrics_df = pd.DataFrame(all_metrics)
 metrics_df.to_csv(metrics_file, index=False)
 
