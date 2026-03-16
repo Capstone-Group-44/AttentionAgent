@@ -20,7 +20,6 @@ df = pd.read_csv(
 
 df = df.sort_values(["subject_id"]).reset_index(drop=True)
 
-# TEMPORAL FEATURE ENGINEERING
 # Head movement velocity
 df["yaw_vel"] = df.groupby("subject_id")["yaw"].diff().fillna(0)
 df["pitch_vel"] = df.groupby("subject_id")["pitch"].diff().fillna(0)
@@ -55,6 +54,35 @@ df["eye_motion_mean_5"] = (
     .fillna(0)
 )
 
+# DERIVED EYE FEATURES
+# Eye aspect ratio (EAR) - simple open/closed metric
+df["left_eye_ear"] = df["left_eye_h"] / (df["left_eye_w"] + 1e-6)
+df["right_eye_ear"] = df["right_eye_h"] / (df["right_eye_w"] + 1e-6)
+df["eye_ear_mean"] = (df["left_eye_ear"] + df["right_eye_ear"]) / 2
+
+# Horizontal and vertical eye displacement from face center
+df["left_eye_dx_center"] = df["left_eye_x"] - (df["face_x"] + df["face_w"]/2)
+df["left_eye_dy_center"] = df["left_eye_y"] - (df["face_y"] + df["face_h"]/2)
+df["right_eye_dx_center"] = df["right_eye_x"] - (df["face_x"] + df["face_w"]/2)
+df["right_eye_dy_center"] = df["right_eye_y"] - (df["face_y"] + df["face_h"]/2)
+
+# Gaze magnitude (distance from center)
+df["left_eye_gaze_mag"] = np.sqrt(
+    df["left_eye_dx_center"]**2 + df["left_eye_dy_center"]**2)
+df["right_eye_gaze_mag"] = np.sqrt(
+    df["right_eye_dx_center"]**2 + df["right_eye_dy_center"]**2)
+df["eye_gaze_mag_mean"] = (df["left_eye_gaze_mag"] +
+                           df["right_eye_gaze_mag"]) / 2
+
+# Rolling temporal stability for gaze
+df["eye_gaze_mag_std_5"] = (
+    df.groupby("subject_id")["eye_gaze_mag_mean"]
+    .rolling(5)
+    .std()
+    .reset_index(level=0, drop=True)
+    .fillna(0)
+)
+
 feature_cols = [
     'face_x', 'face_y', 'face_w', 'face_h',
 
@@ -72,7 +100,14 @@ feature_cols = [
     'yaw_vel', 'pitch_vel', 'roll_vel',
     'left_eye_motion', 'right_eye_motion',
     'yaw_std_5', 'pitch_std_5',
-    'eye_motion_mean_5'
+    'eye_motion_mean_5',
+
+    # DERIVED EYE FEATURES
+    'left_eye_ear', 'right_eye_ear', 'eye_ear_mean',
+    'left_eye_dx_center', 'left_eye_dy_center',
+    'right_eye_dx_center', 'right_eye_dy_center',
+    'left_eye_gaze_mag', 'right_eye_gaze_mag', 'eye_gaze_mag_mean',
+    'eye_gaze_mag_std_5'
 ]
 
 target_col = 'label'
@@ -126,7 +161,6 @@ for test_subject in subjects:
     )
 
     log(f"Training set size after SMOTE: {len(X_train_inner_res)}")
-
     log(
         f"Balanced training class ratio (Focused / Distracted): "
         f"{sum(y_train_inner_res==1)}/{sum(y_train_inner_res==0)}"
@@ -164,7 +198,6 @@ for test_subject in subjects:
     search.fit(X_train_inner_res, y_train_inner_res)
 
     best_model = search.best_estimator_
-
     log(f"Best parameters: {search.best_params_}")
 
     best_model.save_model(
@@ -172,16 +205,12 @@ for test_subject in subjects:
     )
 
     y_val_prob = best_model.predict_proba(X_val)[:, 1]
-
     best_f1 = 0
     best_thresh = 0.5
 
     for thresh in np.arange(0.1, 0.91, 0.01):
-
         y_val_pred = (y_val_prob > thresh).astype(int)
-
         f1 = f1_score(y_val, y_val_pred, pos_label=0, zero_division=0)
-
         if f1 > best_f1:
             best_f1 = f1
             best_thresh = thresh
@@ -192,22 +221,17 @@ for test_subject in subjects:
     )
 
     y_prob = best_model.predict_proba(X_test)[:, 1]
-
     y_pred = (y_prob > best_thresh).astype(int)
 
     acc = accuracy_score(y_test, y_pred)
     bal_acc = balanced_accuracy_score(y_test, y_pred)
-
     precision_d = precision_score(y_test, y_pred, pos_label=0, zero_division=0)
     recall_d = recall_score(y_test, y_pred, pos_label=0, zero_division=0)
     f1_d = f1_score(y_test, y_pred, pos_label=0, zero_division=0)
-
     precision_f = precision_score(y_test, y_pred, pos_label=1, zero_division=0)
     recall_f = recall_score(y_test, y_pred, pos_label=1, zero_division=0)
     f1_f = f1_score(y_test, y_pred, pos_label=1, zero_division=0)
-
     auc = roc_auc_score(y_test, y_prob)
-
     cm = confusion_matrix(y_test, y_pred)
 
     log("Confusion Matrix:")
@@ -234,56 +258,42 @@ for test_subject in subjects:
     all_metrics.append(metrics_row)
 
     pred_df = test_df.copy()
-
     pred_df["prediction"] = y_pred
     pred_df["probability"] = y_prob
-
     pred_df.to_csv(
         f"results/predictions_subject_{test_subject}_tuned.csv",
         index=False
     )
 
     importance = best_model.feature_importances_
-
     fi = pd.DataFrame({
         "Feature": feature_cols,
         "Importance": importance,
         "Test_Subject": test_subject
     })
-
     fi_all.append(fi)
 
     plt.figure(figsize=(8, 6))
-
     sorted_idx = np.argsort(importance)
-
     plt.barh(
         np.array(feature_cols)[sorted_idx],
         importance[sorted_idx]
     )
-
     plt.title(f"Feature Importance - Subject {test_subject}")
-
     plt.tight_layout()
-
     plt.savefig(
         f"results/feature_importance_subject_{test_subject}_tuned.png"
     )
-
     plt.close()
 
 metrics_df = pd.DataFrame(all_metrics)
-
 metrics_df.to_csv(metrics_file, index=False)
 
 fi_df = pd.concat(fi_all, ignore_index=True)
-
 fi_df.to_csv(fi_file, index=False)
 
 log("\n===== FINAL RESULTS =====")
-
 log(metrics_df)
-
 log(f"\nAverage Accuracy: {metrics_df['Accuracy'].mean():.4f}")
 log(f"Average Balanced Accuracy: {metrics_df['Balanced_Accuracy'].mean():.4f}")
 log(f"Average AUC: {metrics_df['AUC'].mean():.4f}")
