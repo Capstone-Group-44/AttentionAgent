@@ -1,7 +1,6 @@
 "use client"
 
 import { StatRing } from "@/components/stat-ring"
-import { SetGoalsDialog } from "@/components/set-goals-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuthUser } from "@/lib/hooks/use-auth-user"
 import { useTodayProgress } from "@/lib/hooks/use-today-progress"
@@ -44,9 +43,8 @@ export function ProgressCard() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>Today's Progress</CardTitle>
-        <SetGoalsDialog />
       </CardHeader>
 
       <CardContent>
