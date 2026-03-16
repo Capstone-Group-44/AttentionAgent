@@ -7,11 +7,15 @@ from pathlib import Path
 from typing import Callable
 
 import joblib
+import matplotlib
 import pandas as pd
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -174,6 +178,54 @@ def save_xgb_model(
     )
 
 
+def save_confusion_matrix(
+    *,
+    y_true: pd.Series,
+    y_pred: pd.Series,
+    output_dir: Path,
+    model_type: str,
+    feature_set_name: str,
+    test_subject: int,
+) -> None:
+    matrix = confusion_matrix(y_true, y_pred)
+    labels = ["0", "1"]
+
+    matrix_df = pd.DataFrame(
+        matrix,
+        index=[f"actual_{label}" for label in labels],
+        columns=[f"predicted_{label}" for label in labels],
+    )
+    matrix_df.to_csv(
+        output_dir / f"{model_type}_{feature_set_name}_subject_{test_subject}_confusion_matrix.csv"
+    )
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+    im = ax.imshow(matrix, cmap="Blues")
+    ax.set_xticks(range(len(labels)))
+    ax.set_yticks(range(len(labels)))
+    ax.set_xticklabels(labels)
+    ax.set_yticklabels(labels)
+    ax.set_xlabel("Predicted label")
+    ax.set_ylabel("Actual label")
+    ax.set_title(f"{model_type.upper()} {feature_set_name} - Subject {test_subject}")
+
+    for row in range(matrix.shape[0]):
+        for col in range(matrix.shape[1]):
+            ax.text(col, row, str(matrix[row, col]), ha="center", va="center", color="black")
+
+    fig.colorbar(im, ax=ax)
+    fig.tight_layout()
+    fig.savefig(
+        output_dir / f"{model_type}_{feature_set_name}_subject_{test_subject}_confusion_matrix.png"
+    )
+    plt.close(fig)
+    print(
+        f"\nConfusion matrix for {model_type.upper()} {feature_set_name} "
+        f"(test subject {test_subject}):"
+    )
+    print(matrix_df.to_string())
+
+
 def train_rf_fold(
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
@@ -193,6 +245,14 @@ def train_rf_fold(
     predictions = pd.Series(model.predict(X_test), index=test_df.index)
 
     save_rf_model(model, output_dir, feature_columns, feature_set_name, test_subject, train_subjects)
+    save_confusion_matrix(
+        y_true=y_test,
+        y_pred=predictions,
+        output_dir=output_dir,
+        model_type="rf",
+        feature_set_name=feature_set_name,
+        test_subject=test_subject,
+    )
 
     metrics = FoldMetrics(
         model_type="rf",
@@ -237,6 +297,14 @@ def train_xgb_fold(
     predictions = pd.Series(model.predict(X_test), index=test_df.index)
 
     save_xgb_model(model, output_dir, feature_columns, feature_set_name, test_subject, train_subjects)
+    save_confusion_matrix(
+        y_true=y_test,
+        y_pred=predictions,
+        output_dir=output_dir,
+        model_type="xgb",
+        feature_set_name=feature_set_name,
+        test_subject=test_subject,
+    )
 
     metrics = FoldMetrics(
         model_type="xgb",
