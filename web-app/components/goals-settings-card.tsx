@@ -167,8 +167,8 @@ export function GoalsSettingsCard() {
             </div>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={saving}>
-                {saving ? "Saving..." : "Save Changes"}
+              <Button type="submit" className="cursor-pointer" variant="secondary" size="sm" disabled={saving}>
+                {saving ? "Updating..." : "Update Goals"}
               </Button>
             </div>
           </form>
