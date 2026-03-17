@@ -12,7 +12,7 @@ MODEL_PATH = os.path.abspath(os.path.join(
     "..",
     "ml_dev_scripts",
     "docs",
-    "loso_results_11",
+    "loso_results_11_new_data",
     "xgb_model_subject_2_tuned.json"
 ))
 
