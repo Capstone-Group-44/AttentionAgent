@@ -35,7 +35,7 @@ export default function NavigationBar(): React.JSX.Element {
         <img
           src="/logo.svg"
           alt="Focus Cam"
-          className="h-7 w-auto"
+          className="h-8 w-auto"
         />
         <NavMenu/>
       </div>
