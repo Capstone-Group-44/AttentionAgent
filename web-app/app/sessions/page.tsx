@@ -50,7 +50,7 @@ return (
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
-          label="Total Focus Time"
+          label="Total Gaze Time"
           value={formatDuration(totalFocus)}
           icon={Clock}
         />
@@ -60,7 +60,7 @@ return (
           icon={Layers}
         />
         <StatCard
-          label="Avg Focus Score"
+          label="Avg Gaze Score"
           value={avgFocus === null ? "—" : `${avgFocus}/100`}
           icon={TrendingUp}
         />

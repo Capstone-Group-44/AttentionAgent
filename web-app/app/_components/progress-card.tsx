@@ -63,7 +63,7 @@ export function ProgressCard() {
           />
 
           <StatRing
-            label="Focus Time"
+            label="Gaze Time"
             value={formatDuration(focusSecondsToday)}
             percent={focusPercent}
             colourClass="stroke-purple-600"
@@ -71,7 +71,7 @@ export function ProgressCard() {
           />
 
           <StatRing
-            label="Average Focus Score"
+            label="Average Gaze Score"
             value={
               <span>
                 {avgFocusScorePercent}
