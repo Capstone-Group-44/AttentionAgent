@@ -36,7 +36,13 @@ class FocusTrackingWorker:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self._model_path = os.getenv(
             "FOCUS_MODEL_PATH",
-            os.path.join(base_dir, "ml_dev_scripts", "models", "xgb_model_subject_3.json"),
+            os.path.join(
+                base_dir,
+                "ml_dev_scripts",
+                "docs",
+                "production_models",
+                "xgb_relative_production.json",
+            ),
         )
         self._firebase_key_path = os.getenv(
             "FIREBASE_KEY_PATH",
@@ -224,15 +230,27 @@ class FocusTrackingWorker:
                     attention_state, focus_score = predictor.predict(features)
                     ts = time.time()
 
-                    (
-                        feat_face_x, feat_face_y, feat_face_w, feat_face_h,
-                        feat_left_eye_x, feat_left_eye_y, feat_left_eye_w, feat_left_eye_h,
-                        feat_right_eye_x, feat_right_eye_y, feat_right_eye_w, feat_right_eye_h,
-                        feat_left_eye_dx, feat_left_eye_dy,
-                        feat_right_eye_dx, feat_right_eye_dy,
-                        feat_sym_dx, feat_sym_dy,
-                        feat_yaw, feat_pitch, feat_roll,
-                    ) = features
+                    feat_face_x = features["face_x"]
+                    feat_face_y = features["face_y"]
+                    feat_face_w = features["face_w"]
+                    feat_face_h = features["face_h"]
+                    feat_left_eye_x = features["left_eye_x"]
+                    feat_left_eye_y = features["left_eye_y"]
+                    feat_left_eye_w = features["left_eye_w"]
+                    feat_left_eye_h = features["left_eye_h"]
+                    feat_right_eye_x = features["right_eye_x"]
+                    feat_right_eye_y = features["right_eye_y"]
+                    feat_right_eye_w = features["right_eye_w"]
+                    feat_right_eye_h = features["right_eye_h"]
+                    feat_left_eye_dx = features["left_eye_dx"]
+                    feat_left_eye_dy = features["left_eye_dy"]
+                    feat_right_eye_dx = features["right_eye_dx"]
+                    feat_right_eye_dy = features["right_eye_dy"]
+                    feat_sym_dx = features["sym_dx"]
+                    feat_sym_dy = features["sym_dy"]
+                    feat_yaw = features["yaw"]
+                    feat_pitch = features["pitch"]
+                    feat_roll = features["roll"]
 
                     left_x, left_y = self._iris_center(landmarks, left_iris_indices)
                     right_x, right_y = self._iris_center(landmarks, right_iris_indices)

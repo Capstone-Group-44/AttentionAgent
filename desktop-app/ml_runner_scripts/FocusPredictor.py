@@ -3,19 +3,36 @@ File Name: FocusPredictor.py
 Description: This script is responsible for importing the XGBoost model and for making real-time predictions.
 Uses the same feature extraction as the data collection script to ensure consistency. 
 """
+import json
 import os
+from pathlib import Path
 import cv2
 import mediapipe as mp
 import pandas as pd
 import xgboost as xgb
 
 FEATURE_COLS = [
-    'face_x', 'face_y', 'face_w', 'face_h',
-    'left_eye_x', 'left_eye_y', 'left_eye_w', 'left_eye_h',
-    'right_eye_x', 'right_eye_y', 'right_eye_w', 'right_eye_h',
-    'left_eye_dx', 'left_eye_dy',
-    'right_eye_dx', 'right_eye_dy',
-    'sym_dx', 'sym_dy', 'yaw', 'pitch', 'roll'
+    "face_x",
+    "face_y",
+    "face_w",
+    "face_h",
+    "left_eye_x",
+    "left_eye_y",
+    "left_eye_w",
+    "left_eye_h",
+    "right_eye_x",
+    "right_eye_y",
+    "right_eye_w",
+    "right_eye_h",
+    "left_eye_dx",
+    "left_eye_dy",
+    "right_eye_dx",
+    "right_eye_dy",
+    "sym_dx",
+    "sym_dy",
+    "yaw",
+    "pitch",
+    "roll",
 ]
 
 
@@ -23,6 +40,14 @@ class FocusPredictor:
     def __init__(self, model_path):
         self.model = xgb.XGBClassifier()
         self.model.load_model(model_path)
+        self.feature_columns = FEATURE_COLS
+        self.threshold = 0.5
+
+        metadata_path = Path(model_path).with_suffix(".metadata.json")
+        if metadata_path.exists():
+            metadata = json.loads(metadata_path.read_text())
+            self.feature_columns = metadata.get("feature_columns", FEATURE_COLS)
+            self.threshold = float(metadata.get("threshold", 0.5))
 
         self.mp_face_mesh = mp.solutions.face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(
@@ -81,18 +106,32 @@ class FocusPredictor:
             (right_eye_corner.x - left_eye_corner.x) + 1e-6
         )
 
-        return [
-            face_x, face_y, face_w, face_h,
-            left_eye_x, left_eye_y, left_eye_w, left_eye_h,
-            right_eye_x, right_eye_y, right_eye_w, right_eye_h,
-            left_eye_dx, left_eye_dy,
-            right_eye_dx, right_eye_dy,
-            sym_dx, sym_dy,
-            yaw, pitch, roll
-        ]
+        return {
+            "face_x": face_x,
+            "face_y": face_y,
+            "face_w": face_w,
+            "face_h": face_h,
+            "left_eye_x": left_eye_x,
+            "left_eye_y": left_eye_y,
+            "left_eye_w": left_eye_w,
+            "left_eye_h": left_eye_h,
+            "right_eye_x": right_eye_x,
+            "right_eye_y": right_eye_y,
+            "right_eye_w": right_eye_w,
+            "right_eye_h": right_eye_h,
+            "left_eye_dx": left_eye_dx,
+            "left_eye_dy": left_eye_dy,
+            "right_eye_dx": right_eye_dx,
+            "right_eye_dy": right_eye_dy,
+            "sym_dx": sym_dx,
+            "sym_dy": sym_dy,
+            "yaw": yaw,
+            "pitch": pitch,
+            "roll": roll,
+        }
 
     def predict(self, features):
-        df = pd.DataFrame([features], columns=FEATURE_COLS)
-        focused = int(self.model.predict(df)[0])
+        df = pd.DataFrame([features])[self.feature_columns]
         prob = float(self.model.predict_proba(df)[0][1])
+        focused = int(prob >= self.threshold)
         return focused, prob
