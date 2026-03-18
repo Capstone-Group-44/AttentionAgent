@@ -132,7 +132,7 @@ class FocusView(QWidget):
 
         # --- Right Column: Controls ---
         right_col = QVBoxLayout()
-        right_col.setAlignment(Qt.AlignTop)
+        right_col.addStretch(25)
         right_col.setSpacing(24)
 
         # Start Button
@@ -157,10 +157,6 @@ class FocusView(QWidget):
         """)
         right_col.addWidget(self.start_btn)
 
-        # Task Name Input
-        self.task_input = self.create_stacked_input_card(
-            "Task Name", "What are you working on?")
-        right_col.addWidget(self.task_input)
 
         # Duration Inputs Row
         durations_row = QHBoxLayout()
@@ -179,6 +175,7 @@ class FocusView(QWidget):
         durations_row.addWidget(self.long_break_input)
 
         right_col.addLayout(durations_row)
+        right_col.addStretch(65)
 
         layout.addLayout(right_col, stretch=1)  # 50% width
 
