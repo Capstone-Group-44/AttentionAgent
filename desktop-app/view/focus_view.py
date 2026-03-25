@@ -3,8 +3,8 @@ from PySide6.QtWidgets import (
     QLineEdit, QStackedWidget, QFrame, QDialog, QScrollArea, QMessageBox,
     QGraphicsDropShadowEffect, QSpacerItem, QSizePolicy
 )
-from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QIcon, QColor, QFont, QImage, QPixmap
+from PySide6.QtCore import Qt, QSize, Signal, QUrl
+from PySide6.QtGui import QIcon, QColor, QFont, QImage, QPixmap, QDesktopServices
 import cv2
 from view.components.circular_progress import CircularProgressWidget
 
@@ -49,19 +49,43 @@ class FocusView(QWidget):
         top_row = QHBoxLayout()
         self.welcome_label = QLabel("Welcome back!")
         self.welcome_label.setStyleSheet(
-            "color: white; font-size: 26px; font-weight: 800; font-family: 'Inter', sans-serif;")
+            "color: white; font-size: 32px; font-weight: 800; font-family: 'Inter', sans-serif;")
         top_row.addWidget(self.welcome_label)
 
         top_row.addStretch()
 
-        self.settings_btn = QPushButton("⚙")
-        self.settings_btn.setFixedSize(36, 36)
+        self.redirect_btn = QPushButton("Website")
+        self.redirect_btn.setCursor(Qt.PointingHandCursor)
+        self.redirect_btn.setFixedHeight(44)
+        self.redirect_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 255, 255, 0.05); 
+                color: #A0A5B5;
+                font-size: 16px;
+                font-weight: 600;
+                border-radius: 22px;
+                padding: 0 20px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
+            }
+        """)
+        top_row.addWidget(self.redirect_btn)
+        
+        # Add spacing between buttons
+        top_row.addSpacing(10)
+
+        self.settings_btn = QPushButton("☰")
+        self.settings_btn.setCursor(Qt.PointingHandCursor)
+        self.settings_btn.setFixedSize(44, 44)
         self.settings_btn.setStyleSheet("""
             QPushButton {
                 background-color: rgba(255, 255, 255, 0.05); 
                 color: #A0A5B5;
-                font-size: 18px;
-                border-radius: 18px;
+                font-size: 28px;
+                border-radius: 22px;
                 border: none;
             }
             QPushButton:hover {
@@ -348,6 +372,7 @@ class FocusView(QWidget):
         self.short_break_btn.clicked.connect(self.on_short_break_clicked)
         self.long_break_btn.clicked.connect(self.on_long_break_clicked)
         self.settings_btn.clicked.connect(self.open_settings)
+        self.redirect_btn.clicked.connect(self.open_website)
 
         # Live timer update
         self.duration_input.input_field.textChanged.connect(
@@ -384,6 +409,9 @@ class FocusView(QWidget):
 
     def open_settings(self):
         self.settings_requested.emit()
+
+    def open_website(self):
+        QDesktopServices.openUrl(QUrl("https://attention-agent.vercel.app/"))
 
     def on_duration_changed(self, text):
         if not text:
