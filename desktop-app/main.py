@@ -20,6 +20,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Screen Gaze")
+        # Ensure dark theme regardless of OS settings
+        self.setStyleSheet("QMainWindow { background-color: #0F1014; }")
 
         # MVVM setup
         self.auth_viewmodel = AuthViewModel()
