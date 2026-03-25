@@ -124,7 +124,7 @@ export function SetGoalsDialog() {
               name="focusGoalMinutes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Focus time goal (minutes)</FormLabel>
+                  <FormLabel>Gaze time goal (minutes)</FormLabel>
                   <FormControl>
                     <Input
                         type="number"
@@ -146,7 +146,7 @@ export function SetGoalsDialog() {
               name="focusScoreGoal"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Average focus score goal</FormLabel>
+                  <FormLabel>Average gaze score goal</FormLabel>
                   <FormControl>
                     <Input
                         type="number"

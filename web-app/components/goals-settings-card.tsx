@@ -121,7 +121,7 @@ export function GoalsSettingsCard() {
                 name="focusGoalMinutes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Focus time goal (minutes)</FormLabel>
+                    <FormLabel>Gaze time goal (minutes)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -145,7 +145,7 @@ export function GoalsSettingsCard() {
                 name="focusScoreGoal"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Focus score goal</FormLabel>
+                    <FormLabel>Gaze score goal</FormLabel>
                     <FormControl>
                       <Input
                         type="number"

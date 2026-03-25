@@ -17,7 +17,7 @@ export const tstColumnDefs: ColumnDef<SessionRow>[] = [
   },
   {
     id: "avgFocusScore",
-    header: "Focus Score",
+    header: "Gaze Score",
     accessorKey: "avgFocusScore",
 
     cell: ({ getValue }) => {

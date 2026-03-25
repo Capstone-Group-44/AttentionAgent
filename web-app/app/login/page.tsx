@@ -181,7 +181,7 @@ async function loginWithGoogle() {
         </button>
         
         <div className="text-center text-sm">
-            New to Focus Cam? {" "}
+            New to Screen Gaze? {" "}
             <Link href="/register" className="text-blue-600 hover:underline">
               Register here
             </Link>

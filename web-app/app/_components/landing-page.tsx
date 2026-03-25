@@ -6,7 +6,7 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
       <h1 className="text-3xl font-semibold tracking-tight">
-        Focus Cam
+        SCREEN GAZE
       </h1>
 
       <p className="mt-4 max-w-md text-sm text-muted-foreground">
