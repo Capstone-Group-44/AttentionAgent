@@ -12,10 +12,7 @@
 
 # testing
 /coverage
-# Playwright
-test-results/
-playwright-report/
-*.zip
+
 # next.js
 /.next/
 /out/
