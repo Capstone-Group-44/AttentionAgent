@@ -1,6 +1,7 @@
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from view.auth_view import AuthView
+from view.consent_dialog import ConsentDialog
 from viewmodel.auth_viewmodel import AuthViewModel
 from view.focus_view import FocusView
 from viewmodel.focus_viewmodel import FocusViewModel
@@ -62,6 +63,10 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+
+    consent_dialog = ConsentDialog()
+    if consent_dialog.exec() != ConsentDialog.Accepted:
+        return 0
 
     window = MainWindow()
     window.show()
