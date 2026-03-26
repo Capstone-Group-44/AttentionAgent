@@ -87,7 +87,7 @@ async function onSubmit(values: FormValues) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-3">
+  <div className="max-w-xl space-y-6">
               <FormField
                 control={form.control}
                 name="sessionsGoal"
