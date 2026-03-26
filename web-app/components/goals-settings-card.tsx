@@ -20,27 +20,23 @@ import {
 import { useAuthUser } from "@/lib/hooks/use-auth-user"
 import { saveUserGoals } from "@/lib/api/goals"
 import { useUserGoals } from "@/lib/hooks/use-user-goals"
+import { Slider } from "@/components/ui/slider"
+import { GoalRingInput } from "./goal-ring-input"
 
 const formSchema = z.object({
-  sessionsGoal: z.coerce.number().int().min(1, "Must be at least 1"),
-  focusGoalMinutes: z.coerce.number().int().min(1, "Must be at least 1"),
-  focusScoreGoal: z.coerce
-    .number()
-    .int()
-    .min(1, "Must be at least 1")
-    .max(100, "Must be 100 or less"),
+  sessionsGoal: z.number().int().min(1, "Must be at least 1"),
+  focusGoalMinutes: z.number().int().min(5, "Must be at least 5 minutes"),
+  focusScoreGoal: z.number().int().min(1, "Must be at least 1").max(100, "Must be 100 or less"),
 })
 
-type FormInput = z.input<typeof formSchema>
-type FormOutput = z.output<typeof formSchema>
+type FormValues = z.infer<typeof formSchema>
 
 export function GoalsSettingsCard() {
   const [saving, setSaving] = useState(false)
 
   const { user } = useAuthUser()
   const { goals, loading } = useUserGoals(user?.uid)
-
-  const form = useForm<FormInput, unknown, FormOutput>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       sessionsGoal: 6,
@@ -57,23 +53,23 @@ export function GoalsSettingsCard() {
     })
   }, [goals, form])
 
-  async function onSubmit(values: FormOutput) {
-    if (!user?.uid) return
+async function onSubmit(values: FormValues) {
+  if (!user?.uid) return
 
-    try {
-      setSaving(true)
+  try {
+    setSaving(true)
 
-      await saveUserGoals(user.uid, {
-        sessionsGoal: values.sessionsGoal,
-        focusGoalSeconds: values.focusGoalMinutes * 60,
-        focusScoreGoal: values.focusScoreGoal,
-      })
-    } catch (error) {
-      console.error("Failed to save goals:", error)
-    } finally {
-      setSaving(false)
-    }
+    await saveUserGoals(user.uid, {
+      sessionsGoal: values.sessionsGoal,
+      focusGoalSeconds: values.focusGoalMinutes * 60,
+      focusScoreGoal: values.focusScoreGoal,
+    })
+  } catch (error) {
+    console.error("Failed to save goals:", error)
+  } finally {
+    setSaving(false)
   }
+}
 
   if (loading) {
     return <div>Loading...</div>
@@ -121,19 +117,23 @@ export function GoalsSettingsCard() {
                 name="focusGoalMinutes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gaze time goal (minutes)</FormLabel>
+                    <FormLabel>Gaze time goal</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        name={field.name}
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        value={
-                          (field.value as string | number | undefined) ?? ""
-                        }
-                        onChange={(e) => field.onChange(e.target.value)}
-                      />
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">15 min</span>
+                          <span className="font-medium">{field.value} min</span>
+                          <span className="text-muted-foreground">240 min</span>
+                        </div>
+
+                        <Slider
+                          min={15}
+                          max={240}
+                          step={15}
+                          value={[field.value ?? 60]}
+                          onValueChange={(value) => field.onChange(value[0])}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -141,29 +141,33 @@ export function GoalsSettingsCard() {
               />
 
               <FormField
-                control={form.control}
-                name="focusScoreGoal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gaze score goal</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={100}
-                        name={field.name}
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        value={
-                          (field.value as string | number | undefined) ?? ""
-                        }
-                        onChange={(e) => field.onChange(e.target.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            control={form.control}
+            name="focusScoreGoal"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Gaze score goal</FormLabel>
+                <FormControl>
+                  <div className="space-y-4 flex flex-col items-center">
+
+                    {/* ring */}
+                    <GoalRingInput value={field.value ?? 85} />
+
+                    {/* slider */}
+                    <Slider
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[field.value ?? 85]}
+                      onValueChange={(value) => field.onChange(value[0])}
+                      className="w-full"
+                    />
+
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
             </div>
 
             <div className="flex justify-end">
