@@ -5,6 +5,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QSize, Signal, QUrl
 from PySide6.QtGui import QIcon, QColor, QFont, QImage, QPixmap, QDesktopServices
+from PySide6.QtCore import Qt, QSize, Signal
+from PySide6.QtGui import QIcon, QColor, QFont, QImage, QPixmap
 import cv2
 from view.components.circular_progress import CircularProgressWidget
 
@@ -73,7 +75,7 @@ class FocusView(QWidget):
             }
         """)
         top_row.addWidget(self.redirect_btn)
-        
+
         # Add spacing between buttons
         top_row.addSpacing(10)
 
@@ -181,7 +183,6 @@ class FocusView(QWidget):
         """)
         right_col.addWidget(self.start_btn)
 
-
         # Duration Inputs Row
         durations_row = QHBoxLayout()
         durations_row.setSpacing(16)
@@ -277,7 +278,8 @@ class FocusView(QWidget):
         # Camera Feed
         self.camera_feed_label = QLabel("Camera Output")
         self.camera_feed_label.setAlignment(Qt.AlignCenter)
-        self.camera_feed_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.camera_feed_label.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.camera_feed_label.setStyleSheet("""
             QLabel {
                 background-color: #050608;
@@ -365,7 +367,6 @@ class FocusView(QWidget):
         page.setLayout(layout)
         return page
 
-
     def setup_connections(self):
         self.start_btn.clicked.connect(self.on_start_clicked)
         self.stop_btn.clicked.connect(self.viewmodel.stop_session)
@@ -431,17 +432,18 @@ class FocusView(QWidget):
     def update_camera_feed(self, frame):
         if self.viewmodel._mode != "focus":
             return
-            
+
         # Frame is BGR numpy array from opencv
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb_image.shape
         bytes_per_line = ch * w
-        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        q_img = QImage(rgb_image.data, w, h,
+                       bytes_per_line, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(q_img)
         # Scale pixmap to fit the label while keeping aspect ratio
         scaled_pixmap = pixmap.scaled(
-            self.camera_feed_label.size(), 
-            Qt.KeepAspectRatio, 
+            self.camera_feed_label.size(),
+            Qt.KeepAspectRatio,
             Qt.SmoothTransformation
         )
         self.camera_feed_label.setPixmap(scaled_pixmap)

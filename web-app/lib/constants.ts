@@ -1,3 +1,3 @@
 export const NAV_BAR = {
-  TITLE: "Focus Cam",
+  TITLE: "Screen Gaze",
 } as const;

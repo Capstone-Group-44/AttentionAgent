@@ -60,33 +60,33 @@ if (focusSamplesQ.error)
     icon={Clock}
   />
   <StatCard
-    label="Total Focus Time"
+    label="Total Gaze Time"
     value={report ? formatDuration(report.totalFocusTime) : "—"}
     icon={Hourglass}
   />
   <StatCard
-    label="Focus Score"
+    label="Gaze Score"
     value={report ? `${focusScoreToPercent(report.avgFocusScore)}/100` : "—"}
     icon={TrendingUp}
   />
 </div>
 
   <div className="rounded-xl border p-4">
-  <div className="mb-2 text-xl font-medium">Focus Trend</div>
+  <div className="mb-2 text-xl font-medium">Gaze Trend</div>
   <div className="text-sm text-muted-foreground pb-4"> 
-    Focus score over time during this session.
+    Gaze score over time during this session.
   </div>
 
   {focusSamplesQ.isLoading && (
     <div className="text-sm text-muted-foreground">
-      Loading focus trend…
+      Loading gaze trend…
     </div>
   )}
   
 
   {focusSamplesQ.error && (
     <div className="text-sm text-red-500">
-      Failed to load focus samples.
+      Failed to load gaze samples.
     </div>
   )}
 

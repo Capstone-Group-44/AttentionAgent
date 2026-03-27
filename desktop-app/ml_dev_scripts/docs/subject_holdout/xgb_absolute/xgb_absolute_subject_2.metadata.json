@@ -1,0 +1,24 @@
+{
+  "feature_columns": [
+    "face_x",
+    "face_y",
+    "face_w",
+    "face_h",
+    "left_eye_x",
+    "left_eye_y",
+    "left_eye_w",
+    "left_eye_h",
+    "right_eye_x",
+    "right_eye_y",
+    "right_eye_w",
+    "right_eye_h"
+  ],
+  "model_type": "xgb",
+  "feature_set": "absolute",
+  "train_subjects": [
+    1,
+    3,
+    4
+  ],
+  "test_subject": 2
+}

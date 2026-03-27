@@ -1,3 +1,10 @@
+from view.settings_view import SettingsView
+from viewmodel.focus_viewmodel import FocusViewModel
+from view.focus_view import FocusView
+from viewmodel.auth_viewmodel import AuthViewModel
+from view.consent_dialog import ConsentDialog
+from view.auth_view import AuthView
+from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 import multiprocessing
 import sys
 import os
@@ -7,13 +14,6 @@ from paths import resource_path
 
 from dotenv import load_dotenv
 load_dotenv(resource_path(".env"))
-
-from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
-from view.auth_view import AuthView
-from viewmodel.auth_viewmodel import AuthViewModel
-from view.focus_view import FocusView
-from viewmodel.focus_viewmodel import FocusViewModel
-from view.settings_view import SettingsView
 
 
 class MainWindow(QMainWindow):
@@ -74,6 +74,10 @@ class MainWindow(QMainWindow):
 def main():
     multiprocessing.freeze_support()
     app = QApplication(sys.argv)
+
+    consent_dialog = ConsentDialog()
+    if consent_dialog.exec() != ConsentDialog.Accepted:
+        return 0
 
     window = MainWindow()
     window.show()

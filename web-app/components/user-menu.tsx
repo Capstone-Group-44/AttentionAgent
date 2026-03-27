@@ -35,7 +35,7 @@ export function UserMenu() {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -47,6 +47,12 @@ export function UserMenu() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          onClick={() => router.push("/settings")}
+          className="cursor-pointer"
+        >
+          Settings
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           Logout
         </DropdownMenuItem>

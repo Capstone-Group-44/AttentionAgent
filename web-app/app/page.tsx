@@ -26,7 +26,7 @@ export default function Home() {
             Welcome back, {getFirstName(user)}
           </h1>
           <p className="text-muted-foreground">
-            Here’s your focus summary.
+            Here’s your screen gaze activity summary.
           </p>
         </div>
       )}

@@ -36,7 +36,13 @@ class FocusTrackingWorker:
 
         self._model_path = os.getenv(
             "FOCUS_MODEL_PATH",
-            resource_path(os.path.join("ml_dev_scripts", "models", "xgb_model_subject_3.json")),
+            os.path.join(
+                base_dir,
+                "ml_dev_scripts",
+                "docs",
+                "production_models",
+                "xgb_relative_production.json",
+            ),
         )
         self._firebase_key_path = os.getenv(
             "FIREBASE_KEY_PATH",
@@ -45,8 +51,10 @@ class FocusTrackingWorker:
                 "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json",
             )),
         )
-        self._firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "attention-agent-30bd0")
-        self._show_preview = os.getenv("FOCUS_SHOW_PREVIEW", "0").strip() not in {"0", "false", "False"}
+        self._firebase_project_id = os.getenv(
+            "FIREBASE_PROJECT_ID", "attention-agent-30bd0")
+        self._show_preview = os.getenv("FOCUS_SHOW_PREVIEW", "0").strip() not in {
+            "0", "false", "False"}
 
     def _emit_error(self, message: str):
         if self.error_callback:
@@ -61,7 +69,8 @@ class FocusTrackingWorker:
                 app = firebase_admin.get_app()
             except ValueError:
                 cred = credentials.Certificate(self._firebase_key_path)
-                app = firebase_admin.initialize_app(cred, {"projectId": self._firebase_project_id})
+                app = firebase_admin.initialize_app(
+                    cred, {"projectId": self._firebase_project_id})
             return firestore.client(app=app)
         except Exception as exc:
             self._emit_error(f"Firestore initialization failed: {exc}")
@@ -184,11 +193,14 @@ class FocusTrackingWorker:
         db_path = self._sample_repo.db.db_path
         print(f"[FocusTrackingWorker] model_path={self._model_path}")
         print(f"[FocusTrackingWorker] sqlite_db_path={db_path}")
-        print(f"[FocusTrackingWorker] firebase_key_path={self._firebase_key_path}")
+        print(
+            f"[FocusTrackingWorker] firebase_key_path={self._firebase_key_path}")
         if firestore_db is None:
-            print("[FocusTrackingWorker] Firestore disabled/unavailable for this session.")
+            print(
+                "[FocusTrackingWorker] Firestore disabled/unavailable for this session.")
         else:
-            print(f"[FocusTrackingWorker] Firestore enabled for project={self._firebase_project_id}")
+            print(
+                f"[FocusTrackingWorker] Firestore enabled for project={self._firebase_project_id}")
         left_iris_indices = [469, 470, 471, 472]
         right_iris_indices = [474, 475, 476, 477]
         preview_window_name = "Screen Gaze Live"
@@ -210,31 +222,46 @@ class FocusTrackingWorker:
                 attention_state = 0
                 focus_score = 0.0
                 state_text = "NO FACE"
-                color = (0, 0, 255) # Red for NO FACE
+                color = (0, 0, 255)  # Red for NO FACE
 
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = predictor.face_mesh.process(rgb)
-                
+
                 if results.multi_face_landmarks:
                     landmarks = results.multi_face_landmarks[0].landmark
                     img_h, img_w = frame.shape[:2]
 
-                    features = predictor.extract_features(landmarks, img_w, img_h)
+                    features = predictor.extract_features(
+                        landmarks, img_w, img_h)
                     attention_state, focus_score = predictor.predict(features)
                     ts = time.time()
 
-                    (
-                        feat_face_x, feat_face_y, feat_face_w, feat_face_h,
-                        feat_left_eye_x, feat_left_eye_y, feat_left_eye_w, feat_left_eye_h,
-                        feat_right_eye_x, feat_right_eye_y, feat_right_eye_w, feat_right_eye_h,
-                        feat_left_eye_dx, feat_left_eye_dy,
-                        feat_right_eye_dx, feat_right_eye_dy,
-                        feat_sym_dx, feat_sym_dy,
-                        feat_yaw, feat_pitch, feat_roll,
-                    ) = features
+                    feat_face_x = features["face_x"]
+                    feat_face_y = features["face_y"]
+                    feat_face_w = features["face_w"]
+                    feat_face_h = features["face_h"]
+                    feat_left_eye_x = features["left_eye_x"]
+                    feat_left_eye_y = features["left_eye_y"]
+                    feat_left_eye_w = features["left_eye_w"]
+                    feat_left_eye_h = features["left_eye_h"]
+                    feat_right_eye_x = features["right_eye_x"]
+                    feat_right_eye_y = features["right_eye_y"]
+                    feat_right_eye_w = features["right_eye_w"]
+                    feat_right_eye_h = features["right_eye_h"]
+                    feat_left_eye_dx = features["left_eye_dx"]
+                    feat_left_eye_dy = features["left_eye_dy"]
+                    feat_right_eye_dx = features["right_eye_dx"]
+                    feat_right_eye_dy = features["right_eye_dy"]
+                    feat_sym_dx = features["sym_dx"]
+                    feat_sym_dy = features["sym_dy"]
+                    feat_yaw = features["yaw"]
+                    feat_pitch = features["pitch"]
+                    feat_roll = features["roll"]
 
-                    left_x, left_y = self._iris_center(landmarks, left_iris_indices)
-                    right_x, right_y = self._iris_center(landmarks, right_iris_indices)
+                    left_x, left_y = self._iris_center(
+                        landmarks, left_iris_indices)
+                    right_x, right_y = self._iris_center(
+                        landmarks, right_iris_indices)
                     nose_z = landmarks[1].z
 
                     sample_id = self._sample_repo.insert_sample(
@@ -307,10 +334,13 @@ class FocusTrackingWorker:
                     )
 
                     if self.sample_callback:
-                        self.sample_callback(int(attention_state), float(focus_score), ts)
-                        
-                    state_text = "FOCUSED" if int(attention_state) == 1 else "DISTRACTED"
-                    color = (0, 200, 0) if int(attention_state) == 1 else (0, 0, 255)
+                        self.sample_callback(
+                            int(attention_state), float(focus_score), ts)
+
+                    state_text = "FOCUSED" if int(
+                        attention_state) == 1 else "DISTRACTED"
+                    color = (0, 200, 0) if int(
+                        attention_state) == 1 else (0, 0, 255)
 
                 if self._show_preview or self.frame_callback:
                     cv2.putText(
@@ -340,7 +370,7 @@ class FocusTrackingWorker:
                         (255, 255, 0),
                         2,
                     )
-                    
+
                     if self.frame_callback:
                         self.frame_callback(frame)
 

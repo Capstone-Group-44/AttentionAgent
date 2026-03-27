@@ -34,8 +34,8 @@ export default function NavigationBar(): React.JSX.Element {
       <div className="flex items-center gap-8">
         <img
           src="/logo.svg"
-          alt="Focus Cam"
-          className="h-7 w-auto"
+          alt="Screen Gaze"
+          className="h-8 w-auto"
         />
         <NavMenu/>
       </div>

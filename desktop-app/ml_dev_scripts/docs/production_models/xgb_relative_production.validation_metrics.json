@@ -1,0 +1,20 @@
+{
+  "validation_rows": 18253,
+  "threshold": 0.5900000000000001,
+  "accuracy": 0.9354078781570153,
+  "balanced_accuracy": 0.896345033744037,
+  "precision": 0.9404820810065738,
+  "recall": 0.9752968772907198,
+  "f1": 0.9575731404512577,
+  "precision_class_0": 0.9179249878226985,
+  "recall_class_0": 0.8173931901973541,
+  "f1_class_0": 0.864747046002065,
+  "f1_macro": 0.9111600932266614,
+  "best_params": {
+    "colsample_bytree": 0.8,
+    "learning_rate": 0.05,
+    "max_depth": 5,
+    "n_estimators": 300,
+    "subsample": 0.8
+  }
+}
