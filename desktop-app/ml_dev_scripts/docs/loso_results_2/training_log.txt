@@ -1,0 +1,123 @@
+
+===== Testing on Subject 1 =====
+Class ratio (Focused / Distracted): 43396/11843
+XGBoost scale_pos_weight: 3.66
+Confusion Matrix:
+[[ 4766  3485]
+ [ 2248 11714]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.68      0.58      0.62      8251
+           1       0.77      0.84      0.80     13962
+
+    accuracy                           0.74     22213
+   macro avg       0.73      0.71      0.71     22213
+weighted avg       0.74      0.74      0.74     22213
+
+Accuracy: 0.7419
+Balanced Accuracy: 0.7083
+AUC: 0.7725
+Precision (Distracted): 0.6795
+Recall (Distracted): 0.5776
+F1 (Distracted): 0.6244
+Precision (Focused): 0.7707
+Recall (Focused): 0.8390
+F1 (Focused): 0.8034
+
+===== Testing on Subject 2 =====
+Class ratio (Focused / Distracted): 43390/12710
+XGBoost scale_pos_weight: 3.41
+Confusion Matrix:
+[[ 2212  4955]
+ [  145 13824]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.94      0.31      0.46      7167
+           1       0.74      0.99      0.84     13969
+
+    accuracy                           0.76     21136
+   macro avg       0.84      0.65      0.65     21136
+weighted avg       0.80      0.76      0.72     21136
+
+Accuracy: 0.7587
+Balanced Accuracy: 0.6491
+AUC: 0.6243
+Precision (Distracted): 0.9385
+Recall (Distracted): 0.3086
+F1 (Distracted): 0.4645
+Precision (Focused): 0.7361
+Recall (Focused): 0.9896
+F1 (Focused): 0.8443
+
+===== Testing on Subject 3 =====
+Class ratio (Focused / Distracted): 39138/15446
+XGBoost scale_pos_weight: 2.53
+Confusion Matrix:
+[[ 2301  1446]
+ [ 1922 17363]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.54      0.61      0.58      3747
+           1       0.92      0.90      0.91     19285
+
+    accuracy                           0.85     23032
+   macro avg       0.73      0.76      0.74     23032
+weighted avg       0.86      0.85      0.86     23032
+
+Accuracy: 0.8538
+Balanced Accuracy: 0.7572
+AUC: 0.7937
+Precision (Distracted): 0.5449
+Recall (Distracted): 0.6141
+F1 (Distracted): 0.5774
+Precision (Focused): 0.9231
+Recall (Focused): 0.9003
+F1 (Focused): 0.9116
+
+===== Testing on Subject 4 =====
+Class ratio (Focused / Distracted): 37772/15332
+XGBoost scale_pos_weight: 2.46
+Confusion Matrix:
+[[ 1981  1909]
+ [ 2061 18930]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.49      0.51      0.50      3890
+           1       0.91      0.90      0.91     20991
+
+    accuracy                           0.84     24881
+   macro avg       0.70      0.71      0.70     24881
+weighted avg       0.84      0.84      0.84     24881
+
+Accuracy: 0.8404
+Balanced Accuracy: 0.7055
+AUC: 0.6962
+Precision (Distracted): 0.4901
+Recall (Distracted): 0.5093
+F1 (Distracted): 0.4995
+Precision (Focused): 0.9084
+Recall (Focused): 0.9018
+F1 (Focused): 0.9051
+
+===== FINAL RESULTS =====
+   Test_Subject  Accuracy  Balanced_Accuracy       AUC  Precision_Distracted  Recall_Distracted  ...  Recall_Focused  F1_Focused    TN    FP    FN     TP
+0             1  0.741908           0.708309  0.772518              0.679498           0.577627  ...        0.838992    0.803402  4766  3485  2248  11714
+1             2  0.758706           0.649128  0.624286              0.938481           0.308637  ...        0.989620    0.844265  2212  4955   145  13824
+2             3  0.853769           0.757214  0.793699              0.544873           0.614091  ...        0.900337    0.911587  2301  1446  1922  17363
+3             4  0.840440           0.705535  0.696229              0.490104           0.509254  ...        0.901815    0.905092  1981  1909  2061  18930
+
+[4 rows x 14 columns]
+
+Average Accuracy: 0.7987056460833089
+Average Balanced Accuracy: 0.7050466334768453
+Average AUC: 0.721683197014545
+Average F1 (Distracted): 0.5414641781847007
+Average F1 (Focused): 0.8660865670527843

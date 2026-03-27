@@ -58,6 +58,11 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Installers / binaries
+*.dmg
+*.exe
+*.msi
 next-env.d.ts
 
 
@@ -71,3 +76,12 @@ desktop-app/keys
 # Desktop app generated state
 desktop-app/db/.sync_state.json
 desktop-app/.session.json
+
+# PyInstaller / macOS Packaging
+desktop-app/build/
+desktop-app/dist/
+*.iconset/
+
+# Tests
+.pytest_cache/
+tests/.pytest_cache/

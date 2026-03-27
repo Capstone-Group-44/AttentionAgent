@@ -58,7 +58,7 @@ export async function getUserSessions(userId: string): Promise<Session[]> {
   const q = query(
     collection(db, "sessions"),
     where("userId", "==", userId),
-    orderBy("startTime", "desc")
+    orderBy("startTime", "desc"),
   );
 
   const snap = await getDocs(q);
@@ -77,7 +77,7 @@ export async function getUserSessions(userId: string): Promise<Session[]> {
 import { focusScoreToPercent } from "@/lib/utils";
 
 export async function getUserSessionRows(
-  userId: string
+  userId: string,
 ): Promise<SessionRow[]> {
   const [sessions, reports] = await Promise.all([
     getUserSessions(userId),

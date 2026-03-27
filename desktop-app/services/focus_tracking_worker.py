@@ -1,4 +1,5 @@
 import os
+import platform
 import time
 from datetime import datetime, timezone
 from threading import Event
@@ -11,6 +12,7 @@ from firebase_admin import firestore
 
 from db.focus_sample_repository import FocusSampleRepository
 from ml_runner_scripts.FocusPredictor import FocusPredictor
+from paths import resource_path
 
 
 class FocusTrackingWorker:
@@ -20,6 +22,7 @@ class FocusTrackingWorker:
         user_id: str,
         session_id: str,
         stop_event: Event,
+        model_path: Optional[str] = None,
         sample_callback: Optional[Callable[[int, float, float], None]] = None,
         error_callback: Optional[Callable[[str], None]] = None,
         frame_callback: Optional[Callable[[object], None]] = None,
@@ -33,27 +36,27 @@ class FocusTrackingWorker:
 
         self._sample_repo = FocusSampleRepository()
 
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self._model_path = os.getenv(
-            "FOCUS_MODEL_PATH",
+        default_model_path = resource_path(
             os.path.join(
-                base_dir,
                 "ml_dev_scripts",
                 "docs",
                 "production_models",
                 "xgb_relative_production.json",
-            ),
+            )
         )
+        env_model_path = os.getenv("FOCUS_MODEL_PATH")
+        self._model_path = model_path or (env_model_path if env_model_path else default_model_path)
         self._firebase_key_path = os.getenv(
             "FIREBASE_KEY_PATH",
-            os.path.join(
-                base_dir,
+            resource_path(os.path.join(
                 "keys",
                 "attention-agent-30bd0-firebase-adminsdk-fbsvc-1274d6f933.json",
-            ),
+            )),
         )
-        self._firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "attention-agent-30bd0")
-        self._show_preview = os.getenv("FOCUS_SHOW_PREVIEW", "0").strip() not in {"0", "false", "False"}
+        self._firebase_project_id = os.getenv(
+            "FIREBASE_PROJECT_ID", "attention-agent-30bd0")
+        self._show_preview = os.getenv("FOCUS_SHOW_PREVIEW", "0").strip() not in {
+            "0", "false", "False"}
 
     def _emit_error(self, message: str):
         if self.error_callback:
@@ -68,7 +71,8 @@ class FocusTrackingWorker:
                 app = firebase_admin.get_app()
             except ValueError:
                 cred = credentials.Certificate(self._firebase_key_path)
-                app = firebase_admin.initialize_app(cred, {"projectId": self._firebase_project_id})
+                app = firebase_admin.initialize_app(
+                    cred, {"projectId": self._firebase_project_id})
             return firestore.client(app=app)
         except Exception as exc:
             self._emit_error(f"Firestore initialization failed: {exc}")
@@ -180,6 +184,71 @@ class FocusTrackingWorker:
         y = sum(landmarks[i].y for i in indices) / len(indices)
         return x, y
 
+    def _open_camera(self) -> tuple[Optional[cv2.VideoCapture], list[str]]:
+        attempts: list[str] = []
+
+        env_index = os.getenv("FOCUS_CAMERA_INDEX")
+        try:
+            preferred_index = int(env_index) if env_index is not None else 0
+        except ValueError:
+            preferred_index = 0
+
+        indices = [preferred_index]
+        for extra in (0, 1, 2):
+            if extra not in indices:
+                indices.append(extra)
+
+        backend_name = os.getenv("FOCUS_CAMERA_BACKEND", "").strip().lower()
+
+        cap_dshow = getattr(cv2, "CAP_DSHOW", None)
+        cap_msmf = getattr(cv2, "CAP_MSMF", None)
+        cap_avfoundation = getattr(cv2, "CAP_AVFOUNDATION", None)
+        cap_v4l2 = getattr(cv2, "CAP_V4L2", None)
+
+        backend_map = {
+            "dshow": cap_dshow,
+            "msmf": cap_msmf,
+            "avfoundation": cap_avfoundation,
+            "v4l2": cap_v4l2,
+            "any": None,
+            "": None,
+        }
+        forced_backend = backend_map.get(backend_name, None)
+
+        system = platform.system()
+        default_backends: list[Optional[int]]
+        if backend_name in {"any", ""}:
+            default_backends = [None]
+        elif forced_backend is not None:
+            default_backends = [forced_backend, None]
+        elif system == "Windows":
+            default_backends = [cap_dshow, cap_msmf, None]
+        elif system == "Darwin":
+            default_backends = [cap_avfoundation, None]
+        else:
+            default_backends = [cap_v4l2, None]
+
+        default_backends = [b for b in default_backends if b is None or isinstance(b, int)]
+
+        for index in indices:
+            for backend in default_backends:
+                label = f"index={index}, backend={'default' if backend is None else backend}"
+                attempts.append(label)
+                try:
+                    cap = cv2.VideoCapture(index) if backend is None else cv2.VideoCapture(index, backend)
+                except Exception as exc:
+                    attempts.append(f"{label} -> exception: {exc}")
+                    continue
+                if cap is not None and cap.isOpened():
+                    return cap, attempts
+                try:
+                    if cap is not None:
+                        cap.release()
+                except Exception:
+                    pass
+
+        return None, attempts
+
     def run(self):
         if not os.path.exists(self._model_path):
             self._emit_error(f"Model not found at: {self._model_path}")
@@ -191,21 +260,31 @@ class FocusTrackingWorker:
         db_path = self._sample_repo.db.db_path
         print(f"[FocusTrackingWorker] model_path={self._model_path}")
         print(f"[FocusTrackingWorker] sqlite_db_path={db_path}")
-        print(f"[FocusTrackingWorker] firebase_key_path={self._firebase_key_path}")
+        print(
+            f"[FocusTrackingWorker] firebase_key_path={self._firebase_key_path}")
         if firestore_db is None:
-            print("[FocusTrackingWorker] Firestore disabled/unavailable for this session.")
+            print(
+                "[FocusTrackingWorker] Firestore disabled/unavailable for this session.")
         else:
-            print(f"[FocusTrackingWorker] Firestore enabled for project={self._firebase_project_id}")
+            print(
+                f"[FocusTrackingWorker] Firestore enabled for project={self._firebase_project_id}")
         left_iris_indices = [469, 470, 471, 472]
         right_iris_indices = [474, 475, 476, 477]
         preview_window_name = "Screen Gaze Live"
 
         try:
             predictor = FocusPredictor(self._model_path)
-            cap = cv2.VideoCapture(0)
-            if not cap.isOpened():
-                self._emit_error("Unable to access webcam.")
+            cap, attempts = self._open_camera()
+            if cap is None:
+                attempted = "; ".join(attempts[:8]) + ("; ..." if len(attempts) > 8 else "")
+                self._emit_error(
+                    "Unable to access webcam. "
+                    "Make sure no other app is using the camera and OS permissions allow it. "
+                    f"Attempts: {attempted}"
+                )
                 return
+
+            self._upsert_session_to_firestore(firestore_db)
 
             while not self.stop_event.is_set():
                 ok, frame = cap.read()
@@ -217,16 +296,17 @@ class FocusTrackingWorker:
                 attention_state = 0
                 focus_score = 0.0
                 state_text = "NO FACE"
-                color = (0, 0, 255) # Red for NO FACE
+                color = (0, 0, 255)  # Red for NO FACE
 
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = predictor.face_mesh.process(rgb)
-                
+
                 if results.multi_face_landmarks:
                     landmarks = results.multi_face_landmarks[0].landmark
                     img_h, img_w = frame.shape[:2]
 
-                    features = predictor.extract_features(landmarks, img_w, img_h)
+                    features = predictor.extract_features(
+                        landmarks, img_w, img_h)
                     attention_state, focus_score = predictor.predict(features)
                     ts = time.time()
 
@@ -252,8 +332,10 @@ class FocusTrackingWorker:
                     feat_pitch = features["pitch"]
                     feat_roll = features["roll"]
 
-                    left_x, left_y = self._iris_center(landmarks, left_iris_indices)
-                    right_x, right_y = self._iris_center(landmarks, right_iris_indices)
+                    left_x, left_y = self._iris_center(
+                        landmarks, left_iris_indices)
+                    right_x, right_y = self._iris_center(
+                        landmarks, right_iris_indices)
                     nose_z = landmarks[1].z
 
                     sample_id = self._sample_repo.insert_sample(
@@ -326,10 +408,13 @@ class FocusTrackingWorker:
                     )
 
                     if self.sample_callback:
-                        self.sample_callback(int(attention_state), float(focus_score), ts)
-                        
-                    state_text = "FOCUSED" if int(attention_state) == 1 else "DISTRACTED"
-                    color = (0, 200, 0) if int(attention_state) == 1 else (0, 0, 255)
+                        self.sample_callback(
+                            int(attention_state), float(focus_score), ts)
+
+                    state_text = "FOCUSED" if int(
+                        attention_state) == 1 else "DISTRACTED"
+                    color = (0, 200, 0) if int(
+                        attention_state) == 1 else (0, 0, 255)
 
                 if self._show_preview or self.frame_callback:
                     cv2.putText(
@@ -359,7 +444,7 @@ class FocusTrackingWorker:
                         (255, 255, 0),
                         2,
                     )
-                    
+
                     if self.frame_callback:
                         self.frame_callback(frame)
 
