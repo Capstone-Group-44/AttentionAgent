@@ -94,6 +94,9 @@ async function onSubmit(values: FormValues) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sessions goal</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Number of focus sessions you aim to complete each day.
+                    </p>
                     <FormControl>
                       <Input
                         type="number"
@@ -105,6 +108,7 @@ async function onSubmit(values: FormValues) {
                           (field.value as string | number | undefined) ?? ""
                         }
                         onChange={(e) => field.onChange(e.target.value)}
+                        className="w-24"
                       />
                     </FormControl>
                     <FormMessage />
@@ -118,13 +122,33 @@ async function onSubmit(values: FormValues) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Gaze time goal</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Total time spent actively engaged during sessions.
+                    </p>
                     <FormControl>
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">15 min</span>
-                          <span className="font-medium">{field.value} min</span>
-                          <span className="text-muted-foreground">240 min</span>
-                        </div>
+                        <div className="flex items-center justify-between gap-4 text-sm">
+  <span className="text-muted-foreground">15 min</span>
+
+  <div className="flex items-center gap-2">
+    <Input
+      type="number"
+      min={15}
+      max={240}
+      step={15}
+      value={field.value ?? 60}
+      onChange={(e) => {
+        const next = Number(e.target.value)
+        if (Number.isNaN(next)) return
+        field.onChange(Math.min(240, Math.max(15, next)))
+      }}
+      className="h-8 w-20 text-center font-medium"
+    />
+    <span className="font-medium">min</span>
+  </div>
+
+  <span className="text-muted-foreground">240 min</span>
+</div>
 
                         <Slider
                           min={15}
@@ -146,6 +170,9 @@ async function onSubmit(values: FormValues) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Gaze score goal</FormLabel>
+                <p className="text-sm text-muted-foreground">
+                      Minimum engagement quality you want to maintain.
+                    </p>
                 <FormControl>
                   <div className="space-y-4 flex flex-col items-center">
 
@@ -170,7 +197,7 @@ async function onSubmit(values: FormValues) {
           />
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-start">
               <Button type="submit" className="cursor-pointer" variant="secondary" size="sm" disabled={saving}>
                 {saving ? "Updating..." : "Update Goals"}
               </Button>
