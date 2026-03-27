@@ -66,6 +66,33 @@ class FocusViewModel(QObject):
         """Provide a reference to the SettingsView so we can read user preferences."""
         self._settings_view = view
 
+    def _resolve_model_path(self) -> str:
+        default_model_path = resource_path(
+            os.path.join(
+                "ml_dev_scripts",
+                "docs",
+                "production_models",
+                "xgb_relative_production.json",
+            )
+        )
+        return os.getenv("FOCUS_MODEL_PATH", default_model_path)
+
+    def _schedule_camera_start_watchdog(self):
+        try:
+            timeout_ms = int(os.getenv("FOCUS_CAMERA_START_TIMEOUT_MS", "7000"))
+        except ValueError:
+            timeout_ms = 7000
+
+        def _check():
+            if not self._is_running or self._mode != "focus":
+                return
+            if getattr(self, "_camera_ready", False):
+                return
+            self.error_occurred.emit("Camera did not start. Check OS camera permissions and close other apps using the webcam.")
+            self.stop_session()
+
+        QTimer.singleShot(max(1000, timeout_ms), _check)
+
     def _start_ml_process(self) -> bool:
         try:
             if self._auth_viewmodel is None or getattr(self._auth_viewmodel, "current_user", None) is None:
@@ -74,6 +101,11 @@ class FocusViewModel(QObject):
                 return False
 
             user = self._auth_viewmodel.current_user
+
+            model_path = self._resolve_model_path()
+            if not os.path.exists(model_path):
+                self.error_occurred.emit(f"Model not found at: {model_path}")
+                return False
 
             self._user_repo.create_user_with_id(
                 user_id=user.uid,
@@ -96,6 +128,7 @@ class FocusViewModel(QObject):
                 user_id=user.uid,
                 session_id=self._session_id,
                 stop_event=self._stop_event,
+                model_path=model_path,
                 error_callback=self.error_occurred.emit,
                 frame_callback=self._on_frame_received,
             )
@@ -326,6 +359,7 @@ class FocusViewModel(QObject):
         # Emit initial state
         self._emit_timer_update()
         self.session_started.emit()
+        self._schedule_camera_start_watchdog()
 
     def stop_session(self):
         # Stop Timer
@@ -385,6 +419,7 @@ class FocusViewModel(QObject):
 
                 self._emit_timer_update()
                 self.focus_resumed.emit()
+                self._schedule_camera_start_watchdog()
             else:
                 # Main focus session finished
                 self.stop_session()

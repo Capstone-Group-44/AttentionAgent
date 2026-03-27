@@ -1,4 +1,5 @@
 import os
+import platform
 import time
 from datetime import datetime, timezone
 from threading import Event
@@ -21,6 +22,7 @@ class FocusTrackingWorker:
         user_id: str,
         session_id: str,
         stop_event: Event,
+        model_path: Optional[str] = None,
         sample_callback: Optional[Callable[[int, float, float], None]] = None,
         error_callback: Optional[Callable[[str], None]] = None,
         frame_callback: Optional[Callable[[object], None]] = None,
@@ -34,16 +36,16 @@ class FocusTrackingWorker:
 
         self._sample_repo = FocusSampleRepository()
 
-        self._model_path = os.getenv(
-            "FOCUS_MODEL_PATH",
+        default_model_path = resource_path(
             os.path.join(
-                base_dir,
                 "ml_dev_scripts",
                 "docs",
                 "production_models",
                 "xgb_relative_production.json",
-            ),
+            )
         )
+        env_model_path = os.getenv("FOCUS_MODEL_PATH")
+        self._model_path = model_path or (env_model_path if env_model_path else default_model_path)
         self._firebase_key_path = os.getenv(
             "FIREBASE_KEY_PATH",
             resource_path(os.path.join(
@@ -182,6 +184,71 @@ class FocusTrackingWorker:
         y = sum(landmarks[i].y for i in indices) / len(indices)
         return x, y
 
+    def _open_camera(self) -> tuple[Optional[cv2.VideoCapture], list[str]]:
+        attempts: list[str] = []
+
+        env_index = os.getenv("FOCUS_CAMERA_INDEX")
+        try:
+            preferred_index = int(env_index) if env_index is not None else 0
+        except ValueError:
+            preferred_index = 0
+
+        indices = [preferred_index]
+        for extra in (0, 1, 2):
+            if extra not in indices:
+                indices.append(extra)
+
+        backend_name = os.getenv("FOCUS_CAMERA_BACKEND", "").strip().lower()
+
+        cap_dshow = getattr(cv2, "CAP_DSHOW", None)
+        cap_msmf = getattr(cv2, "CAP_MSMF", None)
+        cap_avfoundation = getattr(cv2, "CAP_AVFOUNDATION", None)
+        cap_v4l2 = getattr(cv2, "CAP_V4L2", None)
+
+        backend_map = {
+            "dshow": cap_dshow,
+            "msmf": cap_msmf,
+            "avfoundation": cap_avfoundation,
+            "v4l2": cap_v4l2,
+            "any": None,
+            "": None,
+        }
+        forced_backend = backend_map.get(backend_name, None)
+
+        system = platform.system()
+        default_backends: list[Optional[int]]
+        if backend_name in {"any", ""}:
+            default_backends = [None]
+        elif forced_backend is not None:
+            default_backends = [forced_backend, None]
+        elif system == "Windows":
+            default_backends = [cap_dshow, cap_msmf, None]
+        elif system == "Darwin":
+            default_backends = [cap_avfoundation, None]
+        else:
+            default_backends = [cap_v4l2, None]
+
+        default_backends = [b for b in default_backends if b is None or isinstance(b, int)]
+
+        for index in indices:
+            for backend in default_backends:
+                label = f"index={index}, backend={'default' if backend is None else backend}"
+                attempts.append(label)
+                try:
+                    cap = cv2.VideoCapture(index) if backend is None else cv2.VideoCapture(index, backend)
+                except Exception as exc:
+                    attempts.append(f"{label} -> exception: {exc}")
+                    continue
+                if cap is not None and cap.isOpened():
+                    return cap, attempts
+                try:
+                    if cap is not None:
+                        cap.release()
+                except Exception:
+                    pass
+
+        return None, attempts
+
     def run(self):
         if not os.path.exists(self._model_path):
             self._emit_error(f"Model not found at: {self._model_path}")
@@ -207,10 +274,17 @@ class FocusTrackingWorker:
 
         try:
             predictor = FocusPredictor(self._model_path)
-            cap = cv2.VideoCapture(0)
-            if not cap.isOpened():
-                self._emit_error("Unable to access webcam.")
+            cap, attempts = self._open_camera()
+            if cap is None:
+                attempted = "; ".join(attempts[:8]) + ("; ..." if len(attempts) > 8 else "")
+                self._emit_error(
+                    "Unable to access webcam. "
+                    "Make sure no other app is using the camera and OS permissions allow it. "
+                    f"Attempts: {attempted}"
+                )
                 return
+
+            self._upsert_session_to_firestore(firestore_db)
 
             while not self.stop_event.is_set():
                 ok, frame = cap.read()

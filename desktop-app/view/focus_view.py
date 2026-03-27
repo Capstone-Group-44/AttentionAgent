@@ -385,6 +385,7 @@ class FocusView(QWidget):
         self.viewmodel.break_started.connect(self.on_break_started)
         self.viewmodel.focus_resumed.connect(self.on_focus_resumed)
         self.viewmodel.frame_ready.connect(self.update_camera_feed)
+        self.viewmodel.error_occurred.connect(self.on_error)
 
     def on_start_clicked(self):
         try:
@@ -447,6 +448,11 @@ class FocusView(QWidget):
             Qt.SmoothTransformation
         )
         self.camera_feed_label.setPixmap(scaled_pixmap)
+
+    def on_error(self, message):
+        QMessageBox.critical(self, "Error", message)
+        if getattr(self.viewmodel, "_mode", None) == "focus":
+            self.camera_feed_label.setText(message)
 
     def on_session_started(self):
         self.stack.setCurrentWidget(self.running_page)

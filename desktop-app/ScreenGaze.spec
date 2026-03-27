@@ -34,6 +34,8 @@ datas = [
     (os.path.join(ROOT, 'db', 'schema.sql'), 'db'),
     # XGBoost ML models
     (os.path.join(ROOT, 'ml_dev_scripts', 'models'), os.path.join('ml_dev_scripts', 'models')),
+    # XGBoost production model (used by focus tracker)
+    (os.path.join(ROOT, 'ml_dev_scripts', 'docs', 'production_models'), os.path.join('ml_dev_scripts', 'docs', 'production_models')),
 ]
 
 # Collect mediapipe data files (tflite models, binarypb configs)
