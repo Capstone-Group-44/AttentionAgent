@@ -49,12 +49,56 @@ function bucketToSeconds(samples: FocusSample[], startMs: number, bucketMs = 100
     }));
 }
 
+function smoothData(data: ChartPoint[], windowSize = 5): ChartPoint[] {
+  return data.map((_, i) => {
+    const start = Math.max(0, i - windowSize);
+    const end = Math.min(data.length, i + windowSize);
+
+    const slice = data.slice(start, end);
+    const avg =
+      slice.reduce((sum, p) => sum + p.focus, 0) / slice.length;
+
+    return {
+      ...data[i],
+      focus: Math.round(avg * 10) / 10,
+    };
+  });
+
+  
+}
+
+function smoothRawSamples(samples: FocusSample[], windowSize = 10): FocusSample[] {
+  return samples.map((_, i) => {
+    const start = Math.max(0, i - windowSize);
+    const end = Math.min(samples.length, i + windowSize);
+
+    const slice = samples.slice(start, end).filter(s => s.focusScore != null);
+
+    const avg =
+      slice.reduce((sum, s) => sum + (s.focusScore ?? 0), 0) / slice.length;
+
+    return {
+      ...samples[i],
+      focusScore: avg,
+    };
+  });
+}
+
 export function FocusTrendChart({ samples, sessionStart }: Props) {
   const startMs = sessionStart.toDate().getTime();
 
   // Convert raw samples into chart points
-  const data = bucketToSeconds(samples, startMs, 1000);
+  const durationSec =
+  (samples[samples.length - 1]?.timestamp.toDate().getTime() - startMs) / 1000;
 
+const bucketMs =
+  durationSec > 600 ? 5000 :   // >10 min → 5s buckets
+  durationSec > 180 ? 3000 :   // >3 min → 3s buckets
+  1000;
+
+const cleanedSamples = smoothRawSamples(samples, durationSec > 600 ? 15 : 8);
+
+const data = bucketToSeconds(cleanedSamples, startMs, bucketMs);
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
