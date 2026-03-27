@@ -53,6 +53,11 @@ export function UserMenu() {
         >
           Settings
         </DropdownMenuItem>
+        {user?.role === "admin" && (
+          <DropdownMenuItem onClick={() => router.push("/admin")}>
+            Admin
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           Logout
         </DropdownMenuItem>
