@@ -5,6 +5,7 @@ import { useUserProfile } from "@/lib/hooks/use-user-profile"
 import { useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { updateProfile } from "firebase/auth"
+import { Button } from "@/components/ui/button"
 
 export default function ProfilePage() {
   const form = useForm({
@@ -76,12 +77,9 @@ useEffect(() => {
             />
           </div>
 
-          <button
-            type="submit"
-            className="rounded-md border px-4 py-2 text-sm font-medium"
-          >
+          <Button type="submit" className="cursor-pointer" variant="secondary" size="sm">
             Save changes
-          </button>
+          </Button>
         </form>
       </div>
     </div>
