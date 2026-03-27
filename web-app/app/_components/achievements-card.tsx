@@ -2,7 +2,7 @@
 
 import { CardTitle } from "@/components/ui/card";
 import { getBadges } from "@/lib/badges";
-import { Lock, Trophy } from "lucide-react";
+import { Lock } from "lucide-react";
 
 type Props = {
   sessions: number;
@@ -12,7 +12,7 @@ type Props = {
 
 export function AchievementsCard({ sessions, gazeTime, avgScore }: Props) {
   const badges = getBadges({ sessions, gazeTime, avgScore });
-
+  
   return (
     <div className="rounded-xl border p-6 bg-white shadow-sm">
       <CardTitle className="mb-4">Achievements</CardTitle>
@@ -26,11 +26,14 @@ export function AchievementsCard({ sessions, gazeTime, avgScore }: Props) {
             `}
           >
             <div className="mb-2 flex justify-center">
+
+<div className="mb-2 flex justify-center">
   {badge.unlocked ? (
-    <Trophy className="w-6 h-6 text-green-600" />
+    <badge.icon className={`w-8 h-8 ${badge.color}`} />
   ) : (
-    <Lock className="w-6 h-6 text-gray-400" />
+    <Lock className="w-8 h-8 text-gray-400" />
   )}
+</div>
 </div>
 
             <p className="text-sm font-medium">{badge.label}</p>
