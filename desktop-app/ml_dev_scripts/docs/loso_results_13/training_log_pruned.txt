@@ -1,0 +1,51 @@
+
+===== Testing on Subject 1 =====
+Training class ratio (Focused / Distracted): 57712 / 24353
+Using scale_pos_weight = 2.37
+Best parameters: {'subsample': 0.8, 'n_estimators': 400, 'min_child_weight': 1, 'max_depth': 5, 'learning_rate': 0.05, 'gamma': 0.1, 'colsample_bytree': 0.7}
+Best threshold (max F1 Distracted) on validation: 0.70 (F1=0.8874)
+Confusion Matrix:
+[[ 5750  6064]
+ [ 1731 14498]]
+
+===== Testing on Subject 2 =====
+Training class ratio (Focused / Distracted): 59012 / 25321
+Using scale_pos_weight = 2.33
+Best parameters: {'subsample': 0.8, 'n_estimators': 400, 'min_child_weight': 1, 'max_depth': 5, 'learning_rate': 0.05, 'gamma': 0.1, 'colsample_bytree': 0.7}
+Best threshold (max F1 Distracted) on validation: 0.81 (F1=0.9075)
+Confusion Matrix:
+[[ 4085  6761]
+ [ 2234 12695]]
+
+===== Testing on Subject 3 =====
+Training class ratio (Focused / Distracted): 53135 / 29511
+Using scale_pos_weight = 1.80
+Best parameters: {'subsample': 0.8, 'n_estimators': 400, 'min_child_weight': 1, 'max_depth': 5, 'learning_rate': 0.05, 'gamma': 0.1, 'colsample_bytree': 0.7}
+Best threshold (max F1 Distracted) on validation: 0.76 (F1=0.8967)
+Confusion Matrix:
+[[ 3041  3615]
+ [11179  9627]]
+
+===== Testing on Subject 4 =====
+Training class ratio (Focused / Distracted): 51964 / 29316
+Using scale_pos_weight = 1.77
+Best parameters: {'subsample': 0.8, 'n_estimators': 400, 'min_child_weight': 1, 'max_depth': 5, 'learning_rate': 0.05, 'gamma': 0.1, 'colsample_bytree': 0.7}
+Best threshold (max F1 Distracted) on validation: 0.72 (F1=0.9094)
+Confusion Matrix:
+[[ 2523  4328]
+ [ 3204 18773]]
+
+===== FINAL RESULTS =====
+   Test_Subject  Accuracy  Balanced_Accuracy       AUC  Precision_Distracted  Recall_Distracted  ...  F1_Focused    TN    FP     FN     TP  Threshold
+0             1  0.722034           0.690025  0.757409              0.768614           0.486711  ...    0.788128  5750  6064   1731  14498       0.70
+1             2  0.651018           0.613497  0.660333              0.646463           0.376637  ...    0.738403  4085  6761   2234  12695       0.81
+2             3  0.461292           0.459792  0.588621              0.213854           0.456881  ...    0.565496  3041  3615  11179   9627       0.76
+3             4  0.738726           0.611239  0.594624              0.440545           0.368267  ...    0.832912  2523  4328   3204  18773       0.72
+
+[4 rows x 15 columns]
+
+Average Accuracy: 0.6433
+Average Balanced Accuracy: 0.5936
+Average AUC: 0.6502
+Average F1 (Distracted): 0.4411
+Average F1 (Focused): 0.7312
