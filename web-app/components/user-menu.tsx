@@ -48,7 +48,7 @@ export function UserMenu() {
 
       <DropdownMenuContent align="end">
         <DropdownMenuItem
-          onClick={() => router.push("/settings")}
+          onClick={() => router.push("/settings/profile")}
           className="cursor-pointer"
         >
           Settings
