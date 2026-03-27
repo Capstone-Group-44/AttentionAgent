@@ -31,7 +31,7 @@ class AuthView(QWidget):
 
         # Create Subtitle
         self.subtitle_label = QLabel(
-            "Track your productivity and stay focused with the\nPomodoro technique")
+            "Track your screen gaze time using \nreal-time notifications and customizable sessions")
         subtitle_font = QFont("Inter", 14)
         self.subtitle_label.setFont(subtitle_font)
         self.subtitle_label.setAlignment(Qt.AlignCenter)
@@ -126,7 +126,7 @@ class AuthView(QWidget):
 
         # Feature 3
         features_layout.addLayout(self.create_feature_col(
-            "Stay Focused", "Break reminders",
+            "Stay Engaged", "Break reminders",
             os.path.join(
                 icons_dir, "zap.svg"), "rgba(167, 139, 250, 0.15)", "#c084fc"
         ))
