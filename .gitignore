@@ -58,6 +58,11 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Installers / binaries
+*.dmg
+*.exe
+*.msi
 next-env.d.ts
 
 
