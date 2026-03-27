@@ -1,17 +1,27 @@
-import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
-from view.auth_view import AuthView
-from view.consent_dialog import ConsentDialog
-from viewmodel.auth_viewmodel import AuthViewModel
-from view.focus_view import FocusView
-from viewmodel.focus_viewmodel import FocusViewModel
 from view.settings_view import SettingsView
+from viewmodel.focus_viewmodel import FocusViewModel
+from view.focus_view import FocusView
+from viewmodel.auth_viewmodel import AuthViewModel
+from view.consent_dialog import ConsentDialog
+from view.auth_view import AuthView
+from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+import multiprocessing
+import sys
+import os
+
+# Ensure paths module is importable when frozen
+from paths import resource_path
+
+from dotenv import load_dotenv
+load_dotenv(resource_path(".env"))
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Screen Gaze")
+        # Ensure dark theme regardless of OS settings
+        self.setStyleSheet("QMainWindow { background-color: #0F1014; }")
 
         # MVVM setup
         self.auth_viewmodel = AuthViewModel()
@@ -62,6 +72,7 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    multiprocessing.freeze_support()
     app = QApplication(sys.argv)
 
     consent_dialog = ConsentDialog()

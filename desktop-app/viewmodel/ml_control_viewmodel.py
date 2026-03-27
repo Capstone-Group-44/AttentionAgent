@@ -4,6 +4,8 @@ import os
 import signal
 from PySide6.QtCore import QObject, Signal
 
+from paths import resource_path
+
 class MLControlViewModel(QObject):
     is_running_changed = Signal(bool)
     error_occurred = Signal(str)
@@ -23,10 +25,8 @@ class MLControlViewModel(QObject):
 
         try:
             # Construct path to main_ML.py
-            # Assuming this is running from desktop-app/main.py, so app/main_ML.py is relative
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            script_path = os.path.join(base_dir, "app", "main_ML.py")
-            working_dir = os.path.join(base_dir, "app")
+            script_path = resource_path(os.path.join("app", "main_ML.py"))
+            working_dir = resource_path("app")
             
             if not os.path.exists(script_path):
                 self.error_occurred.emit(f"Script not found at: {script_path}")

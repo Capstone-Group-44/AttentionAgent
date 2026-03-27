@@ -10,9 +10,10 @@ from flask import Flask, request
 from PySide6.QtCore import QObject, Signal
 
 from model.user import User
+from paths import get_data_dir, resource_path
 
 
-load_dotenv()
+load_dotenv(resource_path(".env"))
 
 def _join_url(base: str, path: str) -> str:
     base = (base or "").rstrip("/")
@@ -33,7 +34,7 @@ class AuthViewModel(QObject):
         self._server_thread: Optional[threading.Thread] = None
         self._callback_event = threading.Event()
         self._callback_error: Optional[str] = None
-        self._session_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".session.json")
+        self._session_file = os.path.join(get_data_dir(), ".session.json")
 
         # Web app URLs (env-driven)
         self._web_app_base_url = os.getenv("WEB_APP_BASE_URL", "https://attention-agent.vercel.app/")

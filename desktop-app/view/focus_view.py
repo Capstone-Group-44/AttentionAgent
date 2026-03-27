@@ -3,6 +3,8 @@ from PySide6.QtWidgets import (
     QLineEdit, QStackedWidget, QFrame, QDialog, QScrollArea, QMessageBox,
     QGraphicsDropShadowEffect, QSpacerItem, QSizePolicy
 )
+from PySide6.QtCore import Qt, QSize, Signal, QUrl
+from PySide6.QtGui import QIcon, QColor, QFont, QImage, QPixmap, QDesktopServices
 from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QIcon, QColor, QFont, QImage, QPixmap
 import cv2
@@ -49,19 +51,43 @@ class FocusView(QWidget):
         top_row = QHBoxLayout()
         self.welcome_label = QLabel("Welcome back!")
         self.welcome_label.setStyleSheet(
-            "color: white; font-size: 26px; font-weight: 800; font-family: 'Inter', sans-serif;")
+            "color: white; font-size: 32px; font-weight: 800; font-family: 'Inter', sans-serif;")
         top_row.addWidget(self.welcome_label)
 
         top_row.addStretch()
 
-        self.settings_btn = QPushButton("⚙")
-        self.settings_btn.setFixedSize(36, 36)
+        self.redirect_btn = QPushButton("Website")
+        self.redirect_btn.setCursor(Qt.PointingHandCursor)
+        self.redirect_btn.setFixedHeight(44)
+        self.redirect_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 255, 255, 0.05); 
+                color: #A0A5B5;
+                font-size: 16px;
+                font-weight: 600;
+                border-radius: 22px;
+                padding: 0 20px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
+            }
+        """)
+        top_row.addWidget(self.redirect_btn)
+
+        # Add spacing between buttons
+        top_row.addSpacing(10)
+
+        self.settings_btn = QPushButton("☰")
+        self.settings_btn.setCursor(Qt.PointingHandCursor)
+        self.settings_btn.setFixedSize(44, 44)
         self.settings_btn.setStyleSheet("""
             QPushButton {
                 background-color: rgba(255, 255, 255, 0.05); 
                 color: #A0A5B5;
-                font-size: 18px;
-                border-radius: 18px;
+                font-size: 28px;
+                border-radius: 22px;
                 border: none;
             }
             QPushButton:hover {
@@ -132,7 +158,7 @@ class FocusView(QWidget):
 
         # --- Right Column: Controls ---
         right_col = QVBoxLayout()
-        right_col.setAlignment(Qt.AlignTop)
+        right_col.addStretch(25)
         right_col.setSpacing(24)
 
         # Start Button
@@ -157,11 +183,6 @@ class FocusView(QWidget):
         """)
         right_col.addWidget(self.start_btn)
 
-        # Task Name Input
-        self.task_input = self.create_stacked_input_card(
-            "Task Name", "What are you working on?")
-        right_col.addWidget(self.task_input)
-
         # Duration Inputs Row
         durations_row = QHBoxLayout()
         durations_row.setSpacing(16)
@@ -179,6 +200,7 @@ class FocusView(QWidget):
         durations_row.addWidget(self.long_break_input)
 
         right_col.addLayout(durations_row)
+        right_col.addStretch(65)
 
         layout.addLayout(right_col, stretch=1)  # 50% width
 
@@ -256,7 +278,8 @@ class FocusView(QWidget):
         # Camera Feed
         self.camera_feed_label = QLabel("Camera Output")
         self.camera_feed_label.setAlignment(Qt.AlignCenter)
-        self.camera_feed_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.camera_feed_label.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.camera_feed_label.setStyleSheet("""
             QLabel {
                 background-color: #050608;
@@ -337,55 +360,12 @@ class FocusView(QWidget):
 
         right_col.addLayout(action_btns_layout)
 
-        # Stats
-        stats_container = QFrame()
-        stats_container.setStyleSheet("""
-            .QFrame {
-                background-color: #1A1B23; 
-                border-radius: 12px; 
-                border: 1px solid #2A2B35;
-            }
-        """)
-        stats_layout = QHBoxLayout(stats_container)
-        stats_layout.setContentsMargins(20, 20, 20, 20)
-
-        self.completed_label = QLabel("0 sessions")
-        self.completed_label.setAlignment(Qt.AlignCenter)
-        stats_layout.addWidget(
-            self.create_stat_item("Completed", "0 sessions"))
-
-        stats_layout.addWidget(self.create_vertical_line())
-
-        self.progress_label = QLabel("0%")
-        stats_layout.addWidget(self.create_stat_item("Progress", "0%"))
-
-        right_col.addWidget(stats_container)
+        right_col.addLayout(action_btns_layout)
 
         layout.addLayout(right_col, stretch=1)
 
         page.setLayout(layout)
         return page
-
-    def create_stat_item(self, title, value):
-        container = QWidget()
-        l = QVBoxLayout(container)
-        t = QLabel(title)
-        t.setStyleSheet("color: #B0B0B0; font-size: 12px;")
-        t.setAlignment(Qt.AlignCenter)
-        v = QLabel(value)
-        v.setStyleSheet("color: white; font-size: 16px; font-weight: bold;")
-        v.setAlignment(Qt.AlignCenter)
-        l.addWidget(t)
-        l.addWidget(v)
-        return container
-
-    def create_vertical_line(self):
-        line = QFrame()
-        line.setFrameShape(QFrame.VLine)
-        line.setFrameShadow(QFrame.Sunken)
-        line.setStyleSheet("border: none; background-color: #2A2B35;")
-        line.setMaximumWidth(1)
-        return line
 
     def setup_connections(self):
         self.start_btn.clicked.connect(self.on_start_clicked)
@@ -393,6 +373,7 @@ class FocusView(QWidget):
         self.short_break_btn.clicked.connect(self.on_short_break_clicked)
         self.long_break_btn.clicked.connect(self.on_long_break_clicked)
         self.settings_btn.clicked.connect(self.open_settings)
+        self.redirect_btn.clicked.connect(self.open_website)
 
         # Live timer update
         self.duration_input.input_field.textChanged.connect(
@@ -430,6 +411,9 @@ class FocusView(QWidget):
     def open_settings(self):
         self.settings_requested.emit()
 
+    def open_website(self):
+        QDesktopServices.openUrl(QUrl("https://attention-agent.vercel.app/"))
+
     def on_duration_changed(self, text):
         if not text:
             self.circular_progress_setup.set_text("00:00")
@@ -448,17 +432,18 @@ class FocusView(QWidget):
     def update_camera_feed(self, frame):
         if self.viewmodel._mode != "focus":
             return
-            
+
         # Frame is BGR numpy array from opencv
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb_image.shape
         bytes_per_line = ch * w
-        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        q_img = QImage(rgb_image.data, w, h,
+                       bytes_per_line, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(q_img)
         # Scale pixmap to fit the label while keeping aspect ratio
         scaled_pixmap = pixmap.scaled(
-            self.camera_feed_label.size(), 
-            Qt.KeepAspectRatio, 
+            self.camera_feed_label.size(),
+            Qt.KeepAspectRatio,
             Qt.SmoothTransformation
         )
         self.camera_feed_label.setPixmap(scaled_pixmap)
